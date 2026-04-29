@@ -19,6 +19,11 @@ PROVIDER_ENDPOINTS = {
     "模力方舟": "https://model-ark.cn-beijing.volces.com/v1",
 }
 
+BUILTIN_PARAM_KEYS = {
+    "temperature", "max_tokens", "top_p", "enable_thinking",
+    "thinking_budget", "frequency_penalty", "presence_penalty", "stop",
+}
+
 
 class LLMGateway:
     def __init__(self, config):
@@ -49,10 +54,23 @@ class LLMGateway:
             "Content-Type": "application/json",
         }
 
+    def _get_custom_params(self) -> Dict:
+        custom = {}
+        for k, v in self.params.items():
+            if k not in BUILTIN_PARAM_KEYS:
+                custom[k] = v
+        return custom
+
     def _build_request_body(self, messages: List[Dict], stream: bool = False):
         temperature = self.params.get("temperature", 0.7)
         max_tokens = self.params.get("max_tokens", 2048)
         top_p = self.params.get("top_p", 1.0)
+        enable_thinking = self.params.get("enable_thinking", False)
+        thinking_budget = self.params.get("thinking_budget")
+        frequency_penalty = self.params.get("frequency_penalty")
+        presence_penalty = self.params.get("presence_penalty")
+        stop = self.params.get("stop")
+        custom_params = self._get_custom_params()
 
         if self.provider == "Anthropic":
             system_msg = ""
@@ -72,6 +90,15 @@ class LLMGateway:
             }
             if system_msg:
                 body["system"] = system_msg
+            if enable_thinking:
+                budget = thinking_budget or 10000
+                body["thinking"] = {
+                    "type": "enabled",
+                    "budget_tokens": min(budget, max_tokens - 1),
+                }
+            if stop:
+                body["stop_sequences"] = stop if isinstance(stop, list) else [stop]
+            body.update(custom_params)
             return body
 
         if self.provider == "Google":
@@ -84,19 +111,31 @@ class LLMGateway:
                     contents.append({"role": "user", "parts": [{"text": m["content"]}]})
                 elif m["role"] == "assistant":
                     contents.append({"role": "model", "parts": [{"text": m["content"]}]})
+            gen_config = {
+                "temperature": temperature,
+                "maxOutputTokens": max_tokens,
+                "topP": top_p,
+            }
+            if stop:
+                gen_config["stopSequences"] = stop if isinstance(stop, list) else [stop]
+            if frequency_penalty is not None:
+                gen_config["frequencyPenalty"] = frequency_penalty
+            if presence_penalty is not None:
+                gen_config["presencePenalty"] = presence_penalty
             body = {
                 "contents": contents,
-                "generationConfig": {
-                    "temperature": temperature,
-                    "maxOutputTokens": max_tokens,
-                    "topP": top_p,
-                },
+                "generationConfig": gen_config,
             }
             if system_msg:
                 body["systemInstruction"] = {"parts": [{"text": system_msg}]}
+            if enable_thinking:
+                body["thinkingConfig"] = {
+                    "thinkingBudget": thinking_budget or 10000,
+                }
+            body.update(custom_params)
             return body
 
-        return {
+        body = {
             "model": self.model,
             "messages": messages,
             "temperature": temperature,
@@ -104,6 +143,23 @@ class LLMGateway:
             "top_p": top_p,
             "stream": stream,
         }
+        if enable_thinking:
+            if self.provider in ("阿里云", "硅基流动", "无问芯穹"):
+                body["extra_body"] = {"enable_thinking": True}
+                if thinking_budget:
+                    body["extra_body"]["thinking_budget"] = thinking_budget
+            else:
+                body["enable_thinking"] = True
+                if thinking_budget:
+                    body["thinking_budget"] = thinking_budget
+        if frequency_penalty is not None:
+            body["frequency_penalty"] = frequency_penalty
+        if presence_penalty is not None:
+            body["presence_penalty"] = presence_penalty
+        if stop:
+            body["stop"] = stop if isinstance(stop, list) else [stop]
+        body.update(custom_params)
+        return body
 
     def _get_chat_url(self):
         base = self._get_base_url()

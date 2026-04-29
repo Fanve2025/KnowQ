@@ -82,10 +82,12 @@ class AIEngine:
                 select(SearchConfig).where(SearchConfig.id == self.system.search_config_id)
             )
         else:
-            result = await self.db.execute(select(SearchConfig).limit(1))
+            result = await self.db.execute(
+                select(SearchConfig).where(SearchConfig.is_enabled_global == True).limit(1)
+            )
         config = result.scalar_one_or_none()
         if not config:
-            raise ValueError("未配置联网搜索，请先在管理后台配置")
+            raise ValueError("未配置联网搜索，请先在管理后台配置并全局启用")
         return SearchClient(config)
 
     def _simple_search(self, question: str, entries: List[KnowledgeEntry], top_k: int = 5) -> List[KnowledgeEntry]:
