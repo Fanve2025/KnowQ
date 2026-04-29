@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KnowQ智答星AI知识库问答平台 · 技术栈与详细设计技术方案</title>
+    <style>
+        :root {
+            --primary: #0f766e;
+            --primary-light: #ccfbf1;
+            --border: #d1d5db;
+            --bg: #f3f4f6;
+            --text: #111827;
+            --text-secondary: #4b5563;
+            --code-bg: #f1f5f9;
+            --white: #ffffff;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --radius: 8px;
+            --radius-sm: 6px;
+            --transition: 0.2s ease;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+            color: var(--text);
+            background: #eef1f5;
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+        }
+        .top-bar {
+            position: sticky; top:0; z-index:100; background: var(--white);
+            border-bottom:1px solid var(--border); padding:12px 28px;
+            display:flex; align-items:center; justify-content:space-between;
+            box-shadow: var(--shadow); flex-wrap:wrap; gap:10px;
+        }
+        .top-bar .doc-title {
+            font-size:1.1rem; font-weight:700; color:var(--primary);
+            display:flex; align-items:center; gap:8px;
+        }
+        .top-bar .doc-title .icon {
+            width:32px; height:32px; background:var(--primary);
+            border-radius:var(--radius-sm); display:flex;
+            align-items:center; justify-content:center; color:#fff; font-size:1rem;
+        }
+        .badge {
+            display:inline-block; padding:4px 12px; border-radius:20px;
+            font-size:0.78rem; font-weight:500; background:var(--primary-light);
+            color:var(--primary); white-space:nowrap;
+        }
+        .app-container {
+            display:flex; max-width:1400px; margin:0 auto;
+            min-height:calc(100vh - 57px);
+        }
+        .sidebar {
+            width:270px; min-width:270px; background:var(--white);
+            border-right:1px solid var(--border); padding:20px 0;
+            position:sticky; top:57px; height:calc(100vh - 57px);
+            overflow-y:auto; box-shadow:var(--shadow); z-index:50;
+            transition:transform var(--transition);
+        }
+        .sidebar .toc-header {
+            padding:0 20px 14px; font-weight:700; font-size:0.85rem;
+            text-transform:uppercase; letter-spacing:0.5px;
+            color:var(--text-secondary); border-bottom:1px solid var(--border);
+            margin-bottom:6px;
+        }
+        .sidebar nav ul { list-style:none; padding:0; }
+        .sidebar nav li a {
+            display:block; padding:8px 20px; font-size:0.87rem;
+            color:var(--text); text-decoration:none;
+            border-left:3px solid transparent; transition:all var(--transition);
+            line-height:1.4;
+        }
+        .sidebar nav li a:hover { background:var(--primary-light); color:var(--primary); border-left-color:var(--primary); }
+        .sidebar nav li a.active { background:var(--primary-light); color:var(--primary); font-weight:600; border-left-color:var(--primary); }
+        .sidebar nav li.sub a { padding-left:36px; font-size:0.82rem; color:var(--text-secondary); }
+        .sidebar nav li.sub a:hover, .sidebar nav li.sub a.active { color:var(--primary); }
+        .main-content {
+            flex:1; padding:32px 40px; overflow-y:auto;
+            height:calc(100vh - 57px); position:sticky; top:57px;
+            background:#fafbfc;
+        }
+        .content-wrapper {
+            max-width:900px; margin:0 auto; background:var(--white);
+            border-radius:var(--radius); padding:40px 48px;
+            box-shadow:var(--shadow-md);
+        }
+        h1 { font-size:1.9rem; font-weight:700; margin-bottom:6px; color:#111; letter-spacing:-0.3px; }
+        .subtitle { font-size:0.95rem; color:var(--text-secondary); margin-bottom:24px; padding-bottom:20px; border-bottom:2px solid var(--primary-light); }
+        h2 { font-size:1.45rem; font-weight:700; margin-top:36px; margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid #e8e8e8; color:#1a1a1a; scroll-margin-top:70px; }
+        h3 { font-size:1.15rem; font-weight:600; margin-top:22px; margin-bottom:10px; color:#2a2a2a; scroll-margin-top:70px; }
+        h4 { font-size:1rem; font-weight:600; margin-top:16px; margin-bottom:8px; color:#333; scroll-margin-top:70px; }
+        p { margin-bottom:12px; text-align:justify; }
+        ul, ol { margin:8px 0 14px 20px; }
+        li { margin-bottom:5px; }
+        strong { color:#111; }
+        table { width:100%; border-collapse:collapse; margin:16px 0 20px; font-size:0.9rem; border-radius:var(--radius-sm); overflow:hidden; box-shadow:var(--shadow); }
+        thead th { background:#f5f6f8; font-weight:700; padding:11px 14px; text-align:left; border-bottom:2px solid #ddd; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.3px; color:#444; }
+        tbody td { padding:10px 14px; border-bottom:1px solid #eee; vertical-align:top; }
+        tbody tr:hover { background:#fafbfc; }
+        tbody tr:last-child td { border-bottom:none; }
+        code {
+            background:var(--code-bg); padding:2px 7px; border-radius:4px;
+            font-family: 'SF Mono','Menlo','Consolas','Courier New',monospace;
+            font-size:0.88em; color:#c7254e; word-break:break-all;
+        }
+        pre {
+            background:#2d2d2d; color:#f8f8f2; padding:16px 20px;
+            border-radius:var(--radius-sm); overflow-x:auto;
+            font-size:0.85rem; line-height:1.6; margin:14px 0 18px;
+            font-family: 'SF Mono','Menlo','Consolas','Courier New',monospace;
+        }
+        pre code { background:transparent; color:inherit; padding:0; font-size:inherit; }
+        .info-card {
+            background:#f8fafc; border:1px solid #e2e8f0;
+            border-radius:var(--radius-sm); padding:16px 20px;
+            margin:14px 0 18px; font-size:0.9rem;
+        }
+        hr { margin-top:40px; border:none; border-top:2px solid var(--primary-light); }
+        @media (max-width:1024px) {
+            .sidebar { width:240px; min-width:240px; }
+            .main-content { padding:20px; }
+            .content-wrapper { padding:28px 24px; }
+        }
+        @media (max-width:768px) {
+            .sidebar { position:fixed; left:0; top:57px; z-index:200; transform:translateX(-100%); width:260px; height:calc(100vh - 57px); }
+            .sidebar.open { transform:translateX(0); }
+            .main-content { padding:12px; height:auto; position:relative; top:auto; }
+            .content-wrapper { padding:20px 16px; }
+            h1 { font-size:1.5rem; } h2 { font-size:1.25rem; }
+        }
+    </style>
+</head>
+<body>
+<header class="top-bar">
+    <div class="doc-title">
+        <span class="icon">⚙️</span> KnowQ智答星AI知识库问答平台 · 技术栈与详细设计技术方案
+    </div>
+    <div class="meta-badges">
+        <span class="badge">设计版本 V1.0</span>
+        <span class="badge">2026-04-28</span>
+    </div>
+</header>
+
+<div class="app-container">
+    <aside class="sidebar" id="sidebar">
+        <div class="toc-header">📑 目录导航</div>
+        <nav>
+            <ul>
+                <li><a href="#s1">一、技术栈总览</a></li>
+                <li><a href="#s2">二、系统整体架构设计</a></li>
+                <li><a href="#s3">三、核心模块详细设计</a></li>
+                <li class="sub"><a href="#s3-1">3.1 知识库管理模块</a></li>
+                <li class="sub"><a href="#s3-2">3.2 问答引擎设计</a></li>
+                <li class="sub"><a href="#s3-3">3.3 LLM网关</a></li>
+                <li class="sub"><a href="#s3-4">3.4 联网搜索集成</a></li>
+                <li class="sub"><a href="#s3-5">3.5 问答前端系统设计</a></li>
+                <li class="sub"><a href="#s3-6">3.6 管理平台详细设计</a></li>
+                <li><a href="#s4">四、数据统计与用户管理</a></li>
+                <li><a href="#s5">五、安全与性能设计</a></li>
+                <li><a href="#s6">六、部署与运维</a></li>
+                <li><a href="#s7">七、开发路线图建议</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="content-wrapper">
+            <h1>KnowQ智答星AI知识库问答平台<br>技术栈与详细设计技术方案</h1>
+            <p class="subtitle">立足于需求规格说明书，采用成熟、可落地的技术选型与架构设计，兼顾性能、安全性与可扩展性。</p>
+
+            <!-- 一、技术栈总览 -->
+            <h2 id="s1">一、技术栈总览</h2>
+            <table>
+                <thead><tr><th>层次</th><th>技术选型（主推）</th><th>备选/说明</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>管理平台前端</strong></td><td>React 18 + TypeScript + Ant Design / ProComponents</td><td>Vue3 + Element Plus 亦可</td></tr>
+                    <tr><td><strong>用户问答前端</strong></td><td>Next.js (SSG) 或 React (Vite) + 轻量CSS，嵌入独立部署</td><td>支持iframe嵌入或独立域名</td></tr>
+                    <tr><td><strong>后端服务</strong></td><td>Python 3.11+ + FastAPI（异步高性能）<br>• Celery + Redis 异步任务</td><td>Java (Spring Boot 3 + WebFlux) 或 Go 可按团队偏好替换</td></tr>
+                    <tr><td><strong>API网关</strong></td><td>Nginx / Kong / Traefik (统一鉴权与路由)</td><td>可选配 JWT 插件</td></tr>
+                    <tr><td><strong>关系数据库</strong></td><td>PostgreSQL 15 + 扩展 pgvector（向量存储）</td><td>可选独立的 Milvus / Pinecone 向量数据库</td></tr>
+                    <tr><td><strong>缓存</strong></td><td>Redis 7（会话、热点数据、限流、异步队列）</td><td></td></tr>
+                    <tr><td><strong>搜索引擎</strong></td><td>Tavily Search API（联网搜索）<br>关键字匹配: 内置 BM25 (Whoosh/Elasticsearch可选)</td><td>Elasticsearch 可提供更强的全文检索能力，按需升级</td></tr>
+                    <tr><td><strong>LLM网关</strong></td><td>自建 LLM Router（适配器模式）+ LiteLLM 辅助（统一多模型调用）</td><td>需要支持 13 家内置提供商 + 自定义</td></tr>
+                    <tr><td><strong>文档解析</strong></td><td>Unstructured / Apache Tika / PyMuPDF（解析PDF/Word/Markdown）</td><td>异步处理，避免阻塞</td></tr>
+                    <tr><td><strong>容器化与编排</strong></td><td>Docker + Docker Compose（开发）<br>Kubernetes（生产）</td><td>使用 Helm Charts 部署</td></tr>
+                    <tr><td><strong>监控日志</strong></td><td>Prometheus + Grafana + Loki（日志聚合）</td><td>Sentry 错误追踪</td></tr>
+                    <tr><td><strong>CI/CD</strong></td><td>GitHub Actions / GitLab CI</td><td>ArgoCD 实现 GitOps</td></tr>
+                </tbody>
+            </table>
+
+            <!-- 二、系统整体架构设计 -->
+            <h2 id="s2">二、系统整体架构设计</h2>
+            <p>采用 <strong>微服务 + BFF (Backend for Frontend)</strong> 模式，核心服务划分如下：</p>
+            <pre><code>┌──────────────┐      ┌──────────────┐
+│  管理平台前端  │      │  用户问答前端  │
+└──────┬───────┘      └──────┬───────┘
+       │ https              │ https
+       ▼                    ▼
+┌─────────────────────────────────────────┐
+│          API Gateway (Nginx/Kong)        │
+│   - 路由、限流、JWT验证、请求日志        │
+└───────┬──────────────┬──────────┬────────┘
+        │              │          │
+        ▼              ▼          ▼
+┌───────────┐  ┌───────────┐  ┌──────────┐
+│ 管理服务   │  │ 问答引擎   │  │ 统计服务  │
+│ (FastAPI) │  │ (FastAPI) │  │ (FastAPI)│
+│ 知识库管理 │  │ AI/规则模式│  │ 日志统计  │
+│ 系统配置   │  │ 联网搜索   │  │ 看板生成  │
+│ 用户管理   │  │ LLM路由   │  │          │
+└───┬───┬───┘  └───┬───┬───┘  └────┬─────┘
+    │   │          │   │           │
+    ▼   ▼          ▼   ▼           ▼
+┌────────────┐  ┌────────────┐  ┌────────────┐
+│ PostgreSQL │  │ Redis Cache│  │ 向量数据库  │
+│ + pgvector │  │  + 队列    │  │ (pgvector  │
+└────────────┘  └────────────┘  │ / Milvus)  │
+                               └────────────┘
+       │ ▲
+       │ │  异步导入/向量化
+       ▼ │
+┌─────────────────────┐
+│  Celery Worker 集群  │
+│  - 文档解析          │
+│  - Embedding 生成    │
+│  - 知识库入库        │
+└─────────────────────┘</code></pre>
+            <p><strong>服务职责：</strong></p>
+            <ul>
+                <li><strong>管理服务</strong>：知识库CRUD、问答系统配置、LLM配置、用户权限管理。</li>
+                <li><strong>问答引擎</strong>：接收前端提问，根据问答系统配置执行 <strong>AI模式</strong> 或 <strong>规则模式</strong>，返回结果。</li>
+                <li><strong>统计服务</strong>：消费问答日志，聚合统计数据，提供看板API。</li>
+                <li><strong>Celery Workers</strong>：处理文档导入、向量化等异步任务，解耦核心请求链路。</li>
+            </ul>
+
+            <!-- 三、核心模块详细设计 -->
+            <h2 id="s3">三、核心模块详细设计</h2>
+
+            <h3 id="s3-1">3.1 知识库管理模块</h3>
+            <h4>3.1.1 数据模型（核心表）</h4>
+            <pre><code>-- 知识库
+CREATE TABLE knowledge_bases (
+    id UUID PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    description TEXT,
+    created_by UUID REFERENCES users(id),
+    status VARCHAR(20) DEFAULT 'active', -- active/archived
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 知识条目（支持问答对和文档块）
+CREATE TABLE knowledge_entries (
+    id UUID PRIMARY KEY,
+    kb_id UUID NOT NULL REFERENCES knowledge_bases(id) ON DELETE CASCADE,
+    type VARCHAR(10) NOT NULL CHECK (type IN ('q_a', 'chunk')),
+    question VARCHAR(500),           -- 用于问答对
+    content TEXT NOT NULL,           -- 答案或段落文本
+    source_doc VARCHAR(500),         -- 来源文档名
+    chunk_index INT,                 -- 文档块序号
+    embedding vector(1536),          -- OpenAI text-embedding-ada-002 维度，或按需调整
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_entries_kb_id ON knowledge_entries(kb_id);
+CREATE INDEX idx_entries_embedding ON knowledge_entries USING ivfflat (embedding vector_cosine_ops);</code></pre>
+
+            <h4>3.1.2 文档导入流程（异步）</h4>
+            <ol>
+                <li>管理员上传文件 → 管理服务接收，存储至对象存储（MinIO/S3），返回任务ID。</li>
+                <li>发送消息到 Redis 队列，Celery Worker 消费：
+                    <ul>
+                        <li>使用 <code>Unstructured</code> 库解析文档（支持PDF/Word/Markdown/TXT），提取文本并分块（默认512 tokens，重叠50 tokens）。</li>
+                        <li>对每个分块调用 Embedding 服务（可复用 LLM 配置中的 embedding 模型）生成向量。</li>
+                        <li>批量写入 <code>knowledge_entries</code> 表（type='chunk'）。</li>
+                    </ul>
+                </li>
+                <li>完成后更新导入记录状态，管理平台可查看进度。</li>
+            </ol>
+
+            <h4>3.1.3 关键字检索（BM25）</h4>
+            <p>在规则模式下，不依赖向量。为支持快速关键字匹配，可在 <code>knowledge_entries</code> 表上建立全文索引，或使用 Elasticsearch。</p>
+            <ul>
+                <li>方案A（轻量）：使用 PostgreSQL 的 <code>tsvector</code> 进行全文搜索，结合 <code>plainto_tsquery</code>。</li>
+                <li>方案B（强扩展）：同步数据至 Elasticsearch，利用其强大的相关性评分和同义词过滤器。</li>
+            </ul>
+
+            <h3 id="s3-2">3.2 问答引擎设计（核心）</h3>
+            <p>问答引擎根据问答系统的配置（<code>qa_systems</code> 表中的 <code>mode</code> 和 <code>kb_ids</code>）执行不同流程。</p>
+            <h4>3.2.1 AI 模式处理流程</h4>
+            <pre><code>用户问题 question
+    │
+    ▼
+[1] 提取系统配置: 关联知识库 IDS, LLM配置, 是否启用联网搜索
+    │
+    ▼
+[2] 向量检索知识库 (top K, 如 K=5)
+    │
+    ├─ 使用 question embedding 在 pgvector 中搜索余弦相似度最高的条目
+    │
+    ▼
+[3] 构建 Prompt 并调用 LLM 进行意图识别与判断
+    │  System Prompt 示例:
+    │  "你是一个智能助手。首先判断用户问题是否与提供的知识库内容相关。
+    │   如果相关，请严格基于知识库内容回答；如果不相关，回答'__USE_SEARCH__'。"
+    │  Context: [检索到的知识条目文本]
+    │  User: question
+    │
+    ▼
+[4] 解析 LLM 回复:
+    ├── 若回复包含 "__USE_SEARCH__" 或空相关内容 → 启用联网搜索 (如果配置开启)
+    │       └─ 调用 Tavily API 搜索 question，获取搜索结果摘要
+    │       └─ 调用 LLM 二次生成: 结合搜索结果和原始问题生成自然语言回复，标注来源
+    └── 否则直接使用 LLM 基于知识库生成的答案，标注“基于知识库生成”</code></pre>
+            <p><strong>关键优化：</strong></p>
+            <ul>
+                <li>避免两次 LLM 调用（判断+生成），可结合 <code>function calling</code>：让 LLM 决定是否需要搜索，并返回结构化字段。</li>
+                <li>向量检索前可先进行<strong>关键词匹配</strong>过滤，减少无效上下文。</li>
+            </ul>
+            <h4>3.2.2 规则模式处理流程</h4>
+            <pre><code>用户问题 question
+    │
+    ▼
+[1] 预处理: 分词 (jieba/IK Analyzer)、同义词扩展、拼写纠正
+    │
+    ▼
+[2] 检索知识库:
+    ├─ 方式1: PostgreSQL full-text search (tsvector) 根据相关性排序
+    ├─ 方式2: 精确匹配问答对中的 question 字段 (编辑距离/文本相似度)
+    │
+    ▼
+[3] 判断匹配度:
+    ├─ 最高匹配得分 >= 阈值 (如 0.7) → 取出最佳匹配 content，生成回复
+    └─ 否则 → 返回预设提示：“未找到相关内容，请尝试其它关键词”</code></pre>
+            <p><strong>算法细节：</strong>可集成 BM25 或 TF-IDF 进行排序，并利用 <code>pg_trgm</code> 扩展进行模糊匹配。</p>
+
+            <h3 id="s3-3">3.3 LLM 网关（统一适配器）</h3>
+            <p>为支持13家内置提供商及自定义，需设计统一接口抽象层。</p>
+            <pre><code>class BaseLLMProvider(ABC):
+    @abstractmethod
+    async def generate(self, messages: List[Dict], **params) -> LLMResponse:
+        pass
+
+class OpenAILikeProvider(BaseLLMProvider):
+    # 适配 OpenAI、DeepSeek、Kimi 等兼容接口
+    ...
+
+class AnthropicProvider(BaseLLMProvider):
+    ...
+
+# 工厂类
+class LLMRouter:
+    def __init__(self, config: LLMConfig):
+        self.provider = self._init_provider(config)
+    
+    def route(self, system_id: UUID) -> BaseLLMProvider:
+        # 根据问答系统绑定的配置返回对应 provider</code></pre>
+            <ul>
+                <li>所有模型密钥加密存储，运行时解密。</li>
+                <li>支持流式 (SSE) 输出，提升用户体验。</li>
+                <li>集成 LiteLLM 可以快速支持更多模型，减少适配工作。</li>
+            </ul>
+
+            <h3 id="s3-4">3.4 联网搜索集成</h3>
+            <ul>
+                <li>封装 <code>TavilySearchClient</code>，使用异步 HTTP 调用。</li>
+                <li>支持参数化配置：<code>max_results</code>，<code>include_answer</code>，<code>search_depth</code>。</li>
+                <li>结果缓存：对相同搜索词在短期内（如5分钟）缓存结果，减少费用和延迟。</li>
+            </ul>
+
+            <h3 id="s3-5">3.5 问答前端系统设计</h3>
+            <ul>
+                <li><strong>动态路由</strong>：每个问答系统有一个唯一子域名或路径，如 <code>https://qa.example.com/{system_id}</code>。</li>
+                <li><strong>前端实现</strong>：
+                    <ul>
+                        <li>利用 Next.js 的 <code>getStaticPaths</code>（如系统数量不多）或客户端动态获取配置。</li>
+                        <li>页面加载时调用 <code>GET /api/system/{id}/config</code> 获取系统名称、logo等。</li>
+                        <li>聊天组件采用流式接收：请求 <code>POST /api/ask/{id}</code> 并设置 <code>Accept: text/event-stream</code>。</li>
+                    </ul>
+                </li>
+                <li><strong>管理平台中“生成问答前端”</strong>：实质上是在数据库创建配置记录，并返回一个URL，无需实际构建前端文件。</li>
+            </ul>
+
+            <h3 id="s3-6">3.6 管理平台详细设计</h3>
+            <ul>
+                <li><strong>前端页面</strong>：
+                    <ul>
+                        <li>知识库列表/编辑器：支持富文本编辑问答对，拖拽上传文档。</li>
+                        <li>问答系统创建向导：分步选择知识库、模式、LLM配置、搜索配置。</li>
+                        <li>LLM 配置页：下拉列表内置13个选项，选择后展示对应字段；自定义选项提供开放表单。</li>
+                        <li>统计看板：使用 ECharts/AntV 展示图表，数据通过统计服务 API 获取。</li>
+                    </ul>
+                </li>
+                <li><strong>权限控制</strong>：基于 JWT，前端路由守卫，后端中间件验证角色。</li>
+            </ul>
+
+            <!-- 四、数据统计与用户管理 -->
+            <h2 id="s4">四、数据统计与用户管理</h2>
+            <h4>4.1 问答日志表（补充索引）</h4>
+            <pre><code>CREATE TABLE qa_logs (
+    id UUID PRIMARY KEY,
+    system_id UUID NOT NULL,
+    user_id UUID,
+    question TEXT NOT NULL,
+    answer TEXT,
+    mode VARCHAR(10),          -- 'ai' or 'rule'
+    source VARCHAR(10),        -- 'kb', 'web', 'rule_match', 'rule_none'
+    latency_ms INT,
+    feedback SMALLINT,         -- 1: up, -1: down, 0: none
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+-- 建立时间、system_id 索引优化统计查询</code></pre>
+            <h4>4.2 统计服务</h4>
+            <ul>
+                <li>定时任务（Celery Beat）每小时聚合 <code>qa_logs</code> 数据到统计汇总表，或直接查询原表（小规模可行）。</li>
+                <li>提供 REST API：<code>GET /stats/dashboard?system_id=&range=30d</code></li>
+            </ul>
+            <h4>4.3 用户管理</h4>
+            <ul>
+                <li>用户表角色字段 <code>role</code> 区分 <code>admin/user</code>。</li>
+                <li>管理员可创建普通用户；普通用户无法登录管理平台。</li>
+                <li>问答前端可无需登录（根据需求），或支持简单的访问密码保护（由管理员为问答系统设置密码，前端要求输入）。</li>
+            </ul>
+
+            <!-- 五、安全与性能设计 -->
+            <h2 id="s5">五、安全与性能设计</h2>
+            <table>
+                <thead><tr><th>层面</th><th>措施</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>通信安全</strong></td><td>全站 HTTPS，Nginx 启用 HSTS</td></tr>
+                    <tr><td><strong>密钥管理</strong></td><td>使用 Fernet/AES 加密存储 API Key，运行时解密，不允许通过日志打印</td></tr>
+                    <tr><td><strong>速率限制</strong></td><td>基于 IP/User 的令牌桶算法，防止滥用</td></tr>
+                    <tr><td><strong>输入消毒</strong></td><td>防止 prompt injection，对用户输入做长度限制和敏感词过滤</td></tr>
+                    <tr><td><strong>性能</strong></td><td>- 向量检索使用 IVF+PQ 索引加速<br>- Redis 缓存热点知识库条目<br>- 异步任务分离文档处理</td></tr>
+                    <tr><td><strong>高可用</strong></td><td>Kubernetes 多副本部署，数据库主从复制+自动故障转移，Redis Sentinel</td></tr>
+                </tbody>
+            </table>
+
+            <!-- 六、部署与运维 -->
+            <h2 id="s6">六、部署与运维</h2>
+            <h4>6.1 部署拓扑（K8s）</h4>
+            <ul>
+                <li>Namespace: <code>qa-system</code></li>
+                <li>Deployments: <code>admin-api</code>, <code>qa-engine</code>, <code>stats-service</code>, <code>celery-workers</code></li>
+                <li>Ingress: 负责路由 <code>/admin/</code> 到 admin-api，<code>/ask/</code> 到 qa-engine，前端静态资源通过 CDN 或 Nginx 容器提供。</li>
+                <li>配置文件通过 ConfigMap/Secrets 管理。</li>
+            </ul>
+            <h4>6.2 CI/CD 流程</h4>
+            <ol>
+                <li>代码提交 → 运行单元测试、lint</li>
+                <li>构建 Docker 镜像 → 推送到私有仓库</li>
+                <li>使用 ArgoCD 监听 Helm Chart 变更，自动同步到 K8s 集群</li>
+                <li>生产环境采用蓝绿或滚动发布策略，确保零停机。</li>
+            </ol>
+
+            <!-- 七、开发路线图建议 -->
+            <h2 id="s7">七、开发路线图建议</h2>
+            <table>
+                <thead><tr><th>阶段</th><th>内容</th><th>时间</th></tr></thead>
+                <tbody>
+                    <tr><td>P0</td><td>管理平台基础框架+知识库CRUD+文档导入+LLM配置</td><td>4周</td></tr>
+                    <tr><td>P1</td><td>AI 模式问答引擎（向量检索+LLM生成+联网搜索）+ 用户问答前端展示</td><td>3周</td></tr>
+                    <tr><td>P2</td><td>规则模式实现 + 统计看板 + 用户管理</td><td>2周</td></tr>
+                    <tr><td>P3</td><td>性能优化、缓存、压力测试、安全加固、文档和部署脚本</td><td>2周</td></tr>
+                </tbody>
+            </table>
+
+            <hr>
+            <p style="text-align:center; color:var(--text-secondary); font-size:0.85rem; margin-top:16px;">
+                以上方案覆盖了从技术选型、架构设计到核心流程实现的全部关键点，可直接用于指导开发实施。
+            </p>
+        </div>
+    </main>
+</div>
+
+<script>
+    (function() {
+        const links = document.querySelectorAll('.sidebar nav a');
+        const headings = document.querySelectorAll('h2[id], h3[id]');
+        const sidebar = document.getElementById('sidebar');
+        links.forEach(link => {
+            link.addEventListener('click', function(e) {
+                links.forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+                if (window.innerWidth <= 768) sidebar.classList.remove('open');
+            });
+        });
+        function onScroll() {
+            let currentId = '';
+            const scrollTop = document.querySelector('.main-content').scrollTop + 80;
+            headings.forEach(heading => {
+                if (scrollTop >= heading.offsetTop) currentId = heading.id;
+            });
+            links.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + currentId) link.classList.add('active');
+            });
+            if (!currentId && links.length) links[0].classList.add('active');
+        }
+        const main = document.querySelector('.main-content');
+        main.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        document.querySelector('.top-bar .doc-title').addEventListener('click', function() {
+            if (window.innerWidth <= 768) sidebar.classList.toggle('open');
+        });
+    })();
+</script>
+</body>
+</html>
