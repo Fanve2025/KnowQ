@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -9,12 +10,13 @@ from sqlalchemy import select
 from database import get_db
 from models import User
 
-SECRET_KEY = "knowq-secret-key-2026-ai-knowledge-platform"
+SECRET_KEY = os.environ.get("KNOWQ_SECRET_KEY", "knowq-secret-key-default-change-me")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 
 def hash_password(password: str) -> str:
@@ -54,9 +56,11 @@ async def get_current_user(
 
 
 async def get_current_user_optional(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials | None = Depends(optional_security),
     db: AsyncSession = Depends(get_db),
 ) -> User | None:
+    if not credentials:
+        return None
     try:
         token = credentials.credentials
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -78,7 +82,7 @@ async def require_admin(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
-ENCRYPTION_KEY = b"knowq-2026-ai-kb-qa-platform-enc"
+ENCRYPTION_KEY = os.environ.get("KNOWQ_ENC_KEY", "knowq-enc-key-default-change-me").encode()
 
 
 def encrypt_api_key(api_key: str) -> str:

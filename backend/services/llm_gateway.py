@@ -42,13 +42,15 @@ class LLMGateway:
             return self.endpoint.rstrip("/")
         return PROVIDER_ENDPOINTS.get(self.provider, "").rstrip("/")
 
-    def _get_headers(self):
+    def _get_headers(self, for_stream: bool = False):
         if self.provider == "Anthropic":
             return {
                 "x-api-key": self.api_key,
                 "anthropic-version": "2023-06-01",
                 "content-type": "application/json",
             }
+        if self.provider == "Google":
+            return {"Content-Type": "application/json"}
         return {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -144,14 +146,9 @@ class LLMGateway:
             "stream": stream,
         }
         if enable_thinking:
-            if self.provider in ("阿里云", "硅基流动", "无问芯穹"):
-                body["extra_body"] = {"enable_thinking": True}
-                if thinking_budget:
-                    body["extra_body"]["thinking_budget"] = thinking_budget
-            else:
-                body["enable_thinking"] = True
-                if thinking_budget:
-                    body["thinking_budget"] = thinking_budget
+            body["enable_thinking"] = True
+            if thinking_budget:
+                body["thinking_budget"] = thinking_budget
         if frequency_penalty is not None:
             body["frequency_penalty"] = frequency_penalty
         if presence_penalty is not None:
@@ -183,10 +180,7 @@ class LLMGateway:
         body = self._build_request_body(messages, stream=False)
 
         async with httpx.AsyncClient(timeout=60.0) as client:
-            if self.provider == "Google":
-                resp = await client.post(url, json=body, headers={"Content-Type": "application/json"})
-            else:
-                resp = await client.post(url, json=body, headers=headers)
+            resp = await client.post(url, json=body, headers=headers)
             resp.raise_for_status()
             data = resp.json()
 
@@ -198,7 +192,7 @@ class LLMGateway:
 
     async def generate_stream(self, messages: List[Dict]) -> AsyncGenerator[str, None]:
         url = self._get_stream_url()
-        headers = self._get_headers()
+        headers = self._get_headers(for_stream=True)
         body = self._build_request_body(messages, stream=True)
 
         async with httpx.AsyncClient(timeout=120.0) as client:

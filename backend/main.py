@@ -1,10 +1,23 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 from contextlib import asynccontextmanager
 from database import init_db, async_session
 from models import User, LLMConfig, SearchConfig, KnowledgeBase, KnowledgeEntry, QASystem, SystemSettings
 from auth import hash_password
+import os
 import json
+
+
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    return response
 
 
 @asynccontextmanager
@@ -23,11 +36,13 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=os.environ.get("CORS_ORIGINS", "http://localhost:2428").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(BaseHTTPMiddleware, dispatch=security_headers_middleware)
 
 from routers import auth, users, knowledge, systems, llm_config, search_config, stats, qa, logs, conversations, settings
 

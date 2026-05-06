@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from database import get_db
-from models import Conversation, QALog, User
+from models import Conversation, QALog, User, to_iso
 from auth import get_current_user_optional
 from pydantic import BaseModel
 from typing import Optional
@@ -26,14 +26,16 @@ async def list_conversations(
     current_user: User | None = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
 ):
-    if not current_user:
-        return {"conversations": []}
-
     q = (
         select(Conversation)
-        .where(Conversation.system_id == system_id, Conversation.user_id == current_user.id)
+        .where(Conversation.system_id == system_id)
         .order_by(Conversation.updated_at.desc())
     )
+    if current_user:
+        q = q.where(Conversation.user_id == current_user.id)
+    else:
+        q = q.where(Conversation.user_id.is_(None))
+
     result = await db.execute(q)
     conversations = result.scalars().all()
 
@@ -46,8 +48,8 @@ async def list_conversations(
         items.append({
             "id": c.id,
             "title": c.title or "新对话",
-            "created_at": c.created_at.isoformat() if c.created_at else None,
-            "updated_at": c.updated_at.isoformat() if c.updated_at else None,
+            "created_at": to_iso(c.created_at),
+            "updated_at": to_iso(c.updated_at),
             "message_count": msg_count,
         })
 
@@ -71,7 +73,7 @@ async def create_conversation(
     return {
         "id": conversation.id,
         "title": conversation.title,
-        "created_at": conversation.created_at.isoformat() if conversation.created_at else None,
+        "created_at": to_iso(conversation.created_at),
     }
 
 
@@ -114,14 +116,14 @@ async def get_conversation(
             "latency_ms": l.latency_ms,
             "feedback": l.feedback,
             "references": refs,
-            "created_at": l.created_at.isoformat() if l.created_at else None,
+            "created_at": to_iso(l.created_at),
         })
 
     return {
         "id": conv.id,
         "title": conv.title,
         "system_id": conv.system_id,
-        "created_at": conv.created_at.isoformat() if conv.created_at else None,
+        "created_at": to_iso(conv.created_at),
         "messages": messages,
     }
 

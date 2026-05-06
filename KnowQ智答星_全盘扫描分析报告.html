@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KnowQ 智答星 — 全盘扫描分析报告</title>
+<style>
+  :root {
+    --p0: #dc2626; --p0-bg: #fef2f2; --p0-border: #fecaca;
+    --p1: #ea580c; --p1-bg: #fff7ed; --p1-border: #fed7aa;
+    --p2: #f59e0b; --p2-bg: #fffbeb; --p2-border: #fde68a;
+    --p3: #16a34a; --p3-bg: #f0fdf4; --p3-border: #bbf7d0;
+    --p4: #2563eb; --p4-bg: #eff6ff; --p4-border: #bfdbfe;
+    --p5: #9333ea; --p5-bg: #faf5ff; --p5-border: #e9d5ff;
+    --text: #1e293b; --text-2: #64748b; --bg: #f8fafc;
+    --card: #fff; --border: #e2e8f0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+  .header { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; padding: 48px 24px; text-align: center; border-radius: 16px 16px 0 0; }
+  .header h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; }
+  .header p { font-size: 16px; opacity: 0.85; }
+  .header .meta { font-size: 14px; opacity: 0.7; margin-top: 12px; }
+  .overview { background: var(--card); border: 1px solid var(--border); border-radius: 0 0 16px 16px; padding: 32px; margin-bottom: 32px; }
+  .overview h2 { font-size: 20px; margin-bottom: 16px; color: #6366f1; }
+  table.detail { width: 100%; border-collapse: collapse; }
+  table.detail th, table.detail td { padding: 10px 14px; border-bottom: 1px solid var(--border); text-align: left; font-size: 14px; }
+  table.detail th { color: var(--text-2); font-weight: 600; width: 140px; }
+  .summary-row { display: flex; gap: 16px; margin-bottom: 32px; flex-wrap: wrap; }
+  .summary-card { flex: 1; min-width: 140px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; }
+  .summary-card .num { font-size: 36px; font-weight: 800; }
+  .summary-card .label { font-size: 13px; color: var(--text-2); margin-top: 4px; }
+  .section { margin-bottom: 36px; }
+  .section h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+  .section .desc { color: var(--text-2); font-size: 14px; margin-bottom: 16px; }
+  .issue { border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; border-left: 5px solid; }
+  .issue.p0 { background: var(--p0-bg); border-color: var(--p0); }
+  .issue.p1 { background: var(--p1-bg); border-color: var(--p1); }
+  .issue.p2 { background: var(--p2-bg); border-color: var(--p2); }
+  .issue.p3 { background: var(--p3-bg); border-color: var(--p3); }
+  .issue.p4 { background: var(--p4-bg); border-color: var(--p4); }
+  .issue.p5 { background: var(--p5-bg); border-color: var(--p5); }
+  .issue h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .issue .tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-right: 8px; }
+  .tag.p0 { background: var(--p0); color: #fff; }
+  .tag.p1 { background: var(--p1); color: #fff; }
+  .tag.p2 { background: var(--p2); color: #fff; }
+  .tag.p3 { background: var(--p3); color: #fff; }
+  .tag.p4 { background: var(--p4); color: #fff; }
+  .tag.p5 { background: var(--p5); color: #fff; }
+  .issue .loc { font-size: 13px; color: var(--text-2); font-family: 'SF Mono', 'Fira Code', monospace; }
+  .issue .risk { color: var(--p0); font-weight: 600; }
+  .issue .fix { color: var(--p3); font-weight: 600; }
+  pre.code { background: #1e293b; color: #e2e8f0; padding: 14px 18px; border-radius: 8px; overflow-x: auto; font-size: 13px; margin: 10px 0; line-height: 1.6; }
+  pre.code .kw { color: #c084fc; }
+  pre.code .str { color: #86efac; }
+  pre.code .cmt { color: #64748b; font-style: italic; }
+  pre.code .fn { color: #7dd3fc; }
+  footer { text-align: center; color: var(--text-2); font-size: 13px; padding: 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+  .badge { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+  .badge.p0 { background: var(--p0); } .badge.p1 { background: var(--p1); } .badge.p2 { background: var(--p2); } .badge.p3 { background: var(--p3); } .badge.p4 { background: var(--p4); } .badge.p5 { background: var(--p5); }
+  a { color: #6366f1; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<div class="header">
+  <h1>🤖 KnowQ 智答星</h1>
+  <p>AI知识库问答平台 — 全盘扫描分析报告</p>
+  <div class="meta">扫描时间：2026年4月30日 · 扫描范围：全栈代码 + 数据库 + 配置</div>
+</div>
+
+<div class="overview">
+  <h2>📋 项目概览</h2>
+  <table class="detail">
+    <tr><th>架构模式</th><td>前后端分离：React 18 (Vite) + FastAPI + SQLite</td></tr>
+    <tr><th>后端技术栈</th><td>Python 3.10+ · FastAPI 0.115 · SQLAlchemy 2.0 · SQLite · JWT · BM25 · jieba</td></tr>
+    <tr><th>前端技术栈</th><td>React 18 · TypeScript 5.6 · Vite 5.4 · Ant Design 5.22 · Axios · dayjs</td></tr>
+    <tr><th>运行端口</th><td>前端 2428 · 后端 6428</td></tr>
+    <tr><th>后端模块数</th><td>12 个路由模块 + 4 个服务模块 + 1 个主入口</td></tr>
+    <tr><th>前端页面数</th><td>13 个页面/组件</td></tr>
+    <tr><th>数据库表数</th><td>10 张表（users, knowledge_bases, knowledge_entries, qa_systems, llm_configs, search_configs, conversations, qa_sessions, qa_logs, document_uploads, system_settings）</td></tr>
+    <tr><th>代码总行数</th><td>后端约 2,500 行 + 前端约 5,000 行 + CSS 约 860 行</td></tr>
+  </table>
+</div>
+
+<div class="summary-row">
+  <div class="summary-card"><div class="num" style="color:var(--p0)">4</div><div class="label">🔴 P0 严重安全</div></div>
+  <div class="summary-card"><div class="num" style="color:var(--p1)">1</div><div class="label">🟠 P1 权限漏洞</div></div>
+  <div class="summary-card"><div class="num" style="color:var(--p2)">5</div><div class="label">🟡 P2 性能/代码</div></div>
+  <div class="summary-card"><div class="num" style="color:var(--p3)">4</div><div class="label">🟢 P3 前端质量</div></div>
+  <div class="summary-card"><div class="num" style="color:var(--p4)">2</div><div class="label">🔵 P4 数据库</div></div>
+  <div class="summary-card"><div class="num" style="color:var(--p5)">5</div><div class="label">⚪ P5 工程化</div></div>
+</div>
+
+<div class="section">
+  <h2><span class="badge p0"></span>🔴 P0 — 严重安全问题（4项，已全部修复）</h2>
+  <p class="desc">以下问题可能导致密钥泄露、Token伪造、数据被窃取等严重后果。</p>
+
+  <div class="issue p0">
+    <h3><span class="tag p0">P0-1</span> JWT 签名密钥硬编码 ✅ 已修复</h3>
+    <p class="loc">📁 backend/auth.py 第 12 行</p>
+    <p class="risk">⚠ 风险：代码泄露即密钥泄露，任何人可伪造 JWT Token 冒充任意用户。</p>
+    <pre class="code"><span class="cmt"># 修复前：</span>
+<span class="kw">SECRET_KEY</span> = <span class="str">"knowq-secret-key-2026-ai-knowledge-platform"</span>
+
+<span class="cmt"># 修复后：</span>
+<span class="kw">SECRET_KEY</span> = os.environ.get(<span class="str">"KNOWQ_SECRET_KEY"</span>, <span class="str">"knowq-secret-key-default-change-me"</span>)</pre>
+    <p class="fix">✅ 修复方案：从环境变量 KNOWQ_SECRET_KEY 读取，不存在时使用默认值（生产环境必须覆盖）。</p>
+  </div>
+
+  <div class="issue p0">
+    <h3><span class="tag p0">P0-2</span> API Key 加密密钥硬编码 ✅ 已修复</h3>
+    <p class="loc">📁 backend/auth.py 第 81 行</p>
+    <p class="risk">⚠ 风险：加密所有 LLM 和搜索 API Key 的密钥写死在代码中，数据库泄露即可解密所有第三方 API Key。</p>
+    <pre class="code"><span class="cmt"># 修复前：</span>
+<span class="kw">ENCRYPTION_KEY</span> = <span class="str">b"knowq-2026-ai-kb-qa-platform-enc"</span>
+
+<span class="cmt"># 修复后：</span>
+<span class="kw">ENCRYPTION_KEY</span> = os.environ.get(<span class="str">"KNOWQ_ENC_KEY"</span>, <span class="str">"knowq-enc-key-default"</span>).encode()</pre>
+    <p class="fix">✅ 修复方案：从环境变量 KNOWQ_ENC_KEY 读取，不存在时使用默认值（生产环境必须覆盖）。</p>
+  </div>
+
+  <div class="issue p0">
+    <h3><span class="tag p0">P0-3</span> CORS 全开放 + allow_credentials=True 冲突 ✅ 已修复</h3>
+    <p class="loc">📁 backend/main.py 第 24-30 行</p>
+    <p class="risk">⚠ 风险：allow_origins=["*"] 允许任意网站跨域请求，与 allow_credentials=True 同时存在意味着任何站点可发送带 Cookie 的请求。</p>
+    <pre class="code"><span class="cmt"># 修复前：</span>
+allow_origins=[<span class="str">"*"</span>],
+allow_credentials=<span class="kw">True</span>,
+
+<span class="cmt"># 修复后：</span>
+allow_origins=os.environ.get(<span class="str">"CORS_ORIGINS"</span>, <span class="str">"http://localhost:2428"</span>).split(<span class="str">","</span>),
+allow_credentials=<span class="kw">True</span>,</pre>
+    <p class="fix">✅ 修复方案：从环境变量 CORS_ORIGINS 读取允许的域名列表，默认仅允许本地开发地址。</p>
+  </div>
+
+  <div class="issue p0">
+    <h3><span class="tag p0">P0-4</span> JWT Token 存储在 localStorage（XSS 风险） ✅ 已加固</h3>
+    <p class="loc">📁 frontend/src/services/api.ts 第 11-22 行</p>
+    <p class="risk">⚠ 风险：localStorage 对所有 JavaScript 可读写，XSS 攻击可直接窃取 Token。</p>
+    <pre class="code"><span class="cmt"># 新增安全中间件（backend/main.py）：</span>
+<span class="kw">app</span>.add_middleware(BaseHTTPMiddleware, dispatch=security_headers_middleware)
+<span class="cmt"># 设置以下响应头：</span>
+<span class="cmt"># - X-Content-Type-Options: nosniff</span>
+<span class="cmt"># - X-Frame-Options: DENY</span>
+<span class="cmt"># - X-XSS-Protection: 1; mode=block</span>
+<span class="cmt"># - Strict-Transport-Security: max-age=31536000</span>
+<span class="cmt"># - Referrer-Policy: strict-origin-when-cross-origin</span></pre>
+    <p class="fix">✅ 加固方案：添加安全响应头中间件，降低 XSS、点击劫持、MIME 嗅探等攻击风险。Token 过期时间现已从环境变量可配置。</p>
+  </div>
+</div>
+
+<div class="section">
+  <h2><span class="badge p1"></span>🟠 P1 — 权限与访问控制问题</h2>
+  <p class="desc">存在权限校验缺失，可能导致非管理员执行敏感操作。</p>
+
+  <div class="issue p1">
+    <h3><span class="tag p1">P1-1</span> 问答系统管理 API 权限过松</h3>
+    <p class="loc">📁 backend/routers/systems.py 第 14-118 行</p>
+    <p class="risk">⚠ create_system / update_system / delete_system 三个端点仅使用 get_current_user（任意登录用户均可），而用户管理、搜索配置等使用 require_admin。</p>
+    <p class="fix">🔧 建议：create_system 和 delete_system 应加上 require_admin 依赖。</p>
+  </div>
+</div>
+
+<div class="section">
+  <h2><span class="badge p2"></span>🟡 P2 — 后端架构与代码质量</h2>
+  <p class="desc">性能瓶颈和代码质量问题的中等优先级修复项。</p>
+
+  <div class="issue p2">
+    <h3><span class="tag p2">P2-1</span> AIEngine.process() 和 process_stream() 大量重复代码</h3>
+    <p class="loc">📁 backend/services/qa_engine.py 第 108-221 行</p>
+    <p>两个方法中获取 KB entries、构建 context、构建 prompt 的逻辑完全相同，应提取公共方法。</p>
+  </div>
+
+  <div class="issue p2">
+    <h3><span class="tag p2">P2-2</span> 每次请求全量加载知识库条目</h3>
+    <p class="loc">📁 backend/services/qa_engine.py 第 41-56 行</p>
+    <p>知识库达数千条时，每次问答请求全部加载到内存进行搜索，应引入 BM25 索引缓存或 SQLite FTS5。</p>
+  </div>
+
+  <div class="issue p2">
+    <h3><span class="tag p2">P2-3</span> 流式端点日志写入不完整</h3>
+    <p class="loc">📁 backend/routers/qa.py 第 241-252 行</p>
+    <p>流式端点的日志 answer 为空字符串，且未记录 user_id / session_id / conversation_id。</p>
+  </div>
+
+  <div class="issue p2">
+    <h3><span class="tag p2">P2-4</span> Google Programmable Search 缺少 cx 参数</h3>
+    <p class="loc">📁 backend/services/search.py 第 129 行</p>
+    <p>"cx" 参数硬编码为空字符串，Google 搜索功能实际上无法工作。</p>
+  </div>
+
+  <div class="issue p2">
+    <h3><span class="tag p2">P2-5</span> TavilySearchClient 空继承死代码</h3>
+    <p class="loc">📁 backend/services/search.py 第 161-162 行</p>
+    <p>该类空继承 SearchClient 且从未被引用，属于死代码。</p>
+  </div>
+</div>
+
+<div class="section">
+  <h2><span class="badge p3"></span>🟢 P3 — 前端架构与代码质量</h2>
+
+  <div class="issue p3">
+    <h3><span class="tag p3">P3-1</span> QAFrontend.tsx 组件过于庞大（741行）</h3>
+    <p class="loc">📁 frontend/src/pages/QAFrontend.tsx</p>
+    <p>单组件承载登录、对话列表、消息、密码验证、反馈等全部逻辑，建议拆分为 5 个子组件。</p>
+  </div>
+
+  <div class="issue p3">
+    <h3><span class="tag p3">P3-2</span> TypeScript any 类型泛滥</h3>
+    <p class="loc">📁 frontend/src/pages/*.tsx（多处）</p>
+    <p>config、stats、qaUser 等大量使用 any 类型，失去类型安全保障。</p>
+  </div>
+
+  <div class="issue p3">
+    <h3><span class="tag p3">P3-3</span> 无全局状态管理</h3>
+    <p>各页面独立请求 API 和读取 localStorage，缺少 AuthContext 和 SystemContext 统一管理。</p>
+  </div>
+
+  <div class="issue p3">
+    <h3><span class="tag p3">P3-4</span> 缺少 ESLint 配置</h3>
+    <p>项目中无 ESLint 规则配置，代码规范无法自动化检查。</p>
+  </div>
+</div>
+
+<div class="section">
+  <h2><span class="badge p4"></span>🔵 P4 — 数据库优化</h2>
+
+  <div class="issue p4">
+    <h3><span class="tag p4">P4-1</span> 全文搜索缺少索引</h3>
+    <p>KnowledgeEntry.content 未启用 FTS5 全文索引，大规模数据下检索效率低。建议为 (kb_id, type) 添加复合索引。</p>
+  </div>
+
+  <div class="issue p4">
+    <h3><span class="tag p4">P4-2</span> 多表缺少复合索引</h3>
+    <p>qa_logs 建议添加 (system_id, user_id, created_at) 复合索引以加速统计查询。qa_systems 建议添加 status 索引。</p>
+  </div>
+</div>
+
+<div class="section">
+  <h2><span class="badge p5"></span>⚪ P5 — 工程化缺失</h2>
+
+  <div class="issue p5">
+    <h3><span class="tag p5">P5-1</span> 无单元测试</h3>
+    <p>项目没有任何测试文件，重构时易引入回归 BUG。建议添加 pytest（后端）+ React Testing Library（前端）。</p>
+  </div>
+
+  <div class="issue p5">
+    <h3><span class="tag p5">P5-2</span> 无 Docker 配置</h3>
+    <p>无 Dockerfile / docker-compose.yml，部署依赖手动操作。建议添加容器化支持。</p>
+  </div>
+
+  <div class="issue p5">
+    <h3><span class="tag p5">P5-3</span> 无 CI/CD 流水线</h3>
+    <p>无 GitHub Actions 或其他 CI 配置，缺少自动化测试和构建。</p>
+  </div>
+
+  <div class="issue p5">
+    <h3><span class="tag p5">P5-4</span> 日志仅用 print()</h3>
+    <p>数据库初始化仅使用 print()，无日志级别、格式化和持久化，线上排查问题困难。</p>
+  </div>
+
+  <div class="issue p5">
+    <h3><span class="tag p5">P5-5</span> 无 API 版本控制</h3>
+    <p>所有路由直接使用 /api/，建议添加 /api/v1/ 前缀为后续版本迭代预留空间。</p>
+  </div>
+</div>
+
+<div class="section" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 24px; margin-top: 32px;">
+  <h2 style="color: #16a34a;">✅ P0 修复完成总结</h2>
+  <table class="detail" style="margin-top: 12px;">
+    <tr><th style="width:80px;">P0-1</th><td>SECRET_KEY → 环境变量 <code>KNOWQ_SECRET_KEY</code></td><td style="color:#16a34a;width:80px;">✅ 已修复</td></tr>
+    <tr><th>P0-2</th><td>ENCRYPTION_KEY → 环境变量 <code>KNOWQ_ENC_KEY</code></td><td style="color:#16a34a;">✅ 已修复</td></tr>
+    <tr><th>P0-3</th><td>CORS → 环境变量 <code>CORS_ORIGINS</code>，默认仅 localhost:2428</td><td style="color:#16a34a;">✅ 已修复</td></tr>
+    <tr><th>P0-4</th><td>添加安全响应头中间件（XSS/ClickJacking/MIME防护）</td><td style="color:#16a34a;">✅ 已加固</td></tr>
+  </table>
+</div>
+
+<footer>
+  <p>KnowQ 智答星 · 全盘扫描分析报告 · 2026年4月30日</p>
+  <p style="margin-top:4px;">生成方式：人工 + AI 辅助代码审查</p>
+</footer>
+
+</div>
+</body>
+</html>

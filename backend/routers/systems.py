@@ -4,7 +4,7 @@ from sqlalchemy import select
 from database import get_db
 from models import QASystem, LLMConfig, SearchConfig, User
 from schemas import SystemCreate, SystemUpdate, SystemOut
-from auth import get_current_user, require_admin
+from auth import require_admin
 from typing import List
 import json
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/admin/systems", tags=["问答系统管理"])
 @router.get("", response_model=List[SystemOut])
 async def list_systems(
     keyword: str = Query(None),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     q = select(QASystem).order_by(QASystem.created_at.desc())
@@ -28,7 +28,7 @@ async def list_systems(
 @router.post("", response_model=SystemOut)
 async def create_system(
     req: SystemCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     system = QASystem(
@@ -48,14 +48,13 @@ async def create_system(
     await db.refresh(system)
     system.frontend_url = f"/qa/{system.id}"
     await db.commit()
-    await db.refresh(system)
     return SystemOut.model_validate(system)
 
 
 @router.get("/{system_id}", response_model=SystemOut)
 async def get_system(
     system_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(QASystem).where(QASystem.id == system_id))
@@ -69,7 +68,7 @@ async def get_system(
 async def update_system(
     system_id: str,
     req: SystemUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(QASystem).where(QASystem.id == system_id))
@@ -106,7 +105,7 @@ async def update_system(
 @router.delete("/{system_id}")
 async def delete_system(
     system_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(QASystem).where(QASystem.id == system_id))

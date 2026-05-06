@@ -4,7 +4,7 @@ from sqlalchemy import select
 from database import get_db
 from models import LLMConfig, User
 from schemas import LLMConfigCreate, LLMConfigUpdate, LLMConfigOut
-from auth import get_current_user, require_admin, encrypt_api_key, decrypt_api_key
+from auth import require_admin, encrypt_api_key, decrypt_api_key
 from typing import List
 
 router = APIRouter(prefix="/api/admin/llm-config", tags=["LLM配置"])
@@ -17,13 +17,13 @@ PROVIDERS = [
 
 
 @router.get("/providers")
-async def get_providers(current_user: User = Depends(get_current_user)):
+async def get_providers(current_user: User = Depends(require_admin)):
     return {"providers": PROVIDERS}
 
 
 @router.get("", response_model=List[LLMConfigOut])
 async def list_configs(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(LLMConfig).order_by(LLMConfig.created_at.desc()))
@@ -41,7 +41,7 @@ async def list_configs(
 @router.post("", response_model=LLMConfigOut)
 async def create_config(
     req: LLMConfigCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     config = LLMConfig(
@@ -67,7 +67,7 @@ async def create_config(
 async def update_config(
     config_id: str,
     req: LLMConfigUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(LLMConfig).where(LLMConfig.id == config_id))
@@ -100,7 +100,7 @@ async def update_config(
 @router.delete("/{config_id}")
 async def delete_config(
     config_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(LLMConfig).where(LLMConfig.id == config_id))
@@ -115,7 +115,7 @@ async def delete_config(
 @router.post("/{config_id}/test")
 async def test_connection(
     config_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(LLMConfig).where(LLMConfig.id == config_id))

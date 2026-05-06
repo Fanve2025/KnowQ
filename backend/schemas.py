@@ -1,6 +1,18 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 from typing import Optional, List
 from datetime import datetime
+
+
+class UTCSchema(BaseModel):
+    @field_serializer('created_at', 'updated_at', check_fields=False)
+    @classmethod
+    def serialize_dt(cls, v):
+        if v is None:
+            return None
+        s = v.isoformat()
+        if not s.endswith(("Z", "+00:00")):
+            s += "Z"
+        return s
 
 
 class LoginRequest(BaseModel):
@@ -19,7 +31,7 @@ class LoginResponse(BaseModel):
     user: "UserOut"
 
 
-class UserOut(BaseModel):
+class UserOut(UTCSchema):
     id: str
     username: str
     role: str
@@ -53,7 +65,7 @@ class KBUpdate(BaseModel):
     status: Optional[str] = None
 
 
-class KBOut(BaseModel):
+class KBOut(UTCSchema):
     id: str
     name: str
     description: str
@@ -81,7 +93,7 @@ class EntryUpdate(BaseModel):
     source_doc: Optional[str] = None
 
 
-class EntryOut(BaseModel):
+class EntryOut(UTCSchema):
     id: str
     kb_id: str
     type: str
@@ -122,7 +134,7 @@ class SystemUpdate(BaseModel):
     system_prompt: Optional[str] = None
 
 
-class SystemOut(BaseModel):
+class SystemOut(UTCSchema):
     id: str
     name: str
     description: str
@@ -165,7 +177,7 @@ class LLMConfigUpdate(BaseModel):
     is_default: Optional[bool] = None
 
 
-class LLMConfigOut(BaseModel):
+class LLMConfigOut(UTCSchema):
     model_config = {"protected_namespaces": (), "from_attributes": True}
     id: str
     name: str
@@ -182,6 +194,8 @@ class SearchConfigCreate(BaseModel):
     name: str
     provider: str = "tavily"
     api_key: str = ""
+    endpoint: Optional[str] = None
+    cx: Optional[str] = None
     max_results: int = 5
     summary_length: int = 500
     is_enabled_global: bool = False
@@ -191,16 +205,20 @@ class SearchConfigUpdate(BaseModel):
     name: Optional[str] = None
     provider: Optional[str] = None
     api_key: Optional[str] = None
+    endpoint: Optional[str] = None
+    cx: Optional[str] = None
     max_results: Optional[int] = None
     summary_length: Optional[int] = None
     is_enabled_global: Optional[bool] = None
 
 
-class SearchConfigOut(BaseModel):
+class SearchConfigOut(UTCSchema):
     id: str
     name: str
     provider: str = "tavily"
     api_key_encrypted: Optional[str] = None
+    endpoint: Optional[str] = None
+    cx: Optional[str] = None
     max_results: int
     summary_length: int
     is_enabled_global: bool
@@ -247,7 +265,7 @@ class SystemStats(BaseModel):
     kb_hit_rate: float = 0.0
 
 
-class SettingsOut(BaseModel):
+class SettingsOut(UTCSchema):
     id: str
     rule_threshold: float = 0.12
     rule_secondary_threshold: float = 0.05

@@ -4,7 +4,7 @@ from sqlalchemy import select, func, and_
 from database import get_db
 from models import QALog, KnowledgeBase, QASystem, User, DocumentUpload
 from schemas import DashboardStats, SystemStats
-from auth import get_current_user, require_admin
+from auth import require_admin
 from datetime import datetime, timedelta
 from typing import List, Optional
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/stats", tags=["数据统计"])
 @router.get("/dashboard", response_model=DashboardStats)
 async def dashboard_stats(
     range_days: int = Query(30),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     kb_count = (await db.execute(select(func.count()).select_from(KnowledgeBase))).scalar() or 0
@@ -63,7 +63,7 @@ async def dashboard_stats(
 @router.get("/systems", response_model=List[SystemStats])
 async def system_stats(
     range_days: int = Query(30),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     since = datetime.utcnow() - timedelta(days=range_days)
@@ -111,7 +111,7 @@ async def system_stats(
 @router.get("/trend")
 async def question_trend(
     range_days: int = Query(30),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     since = datetime.utcnow() - timedelta(days=range_days)

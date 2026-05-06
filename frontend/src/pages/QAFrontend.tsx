@@ -63,13 +63,10 @@ export default function QAFrontend() {
   }, [qaToken])
 
   useEffect(() => {
-    const token = localStorage.getItem('knowq-qa-token')
+    const qaTokenStored = localStorage.getItem('knowq-qa-token')
     const userStr = localStorage.getItem('knowq-qa-user')
-    if (token && userStr) {
-      setQaToken(token)
-      setLoggedIn(true)
-      try { setQaUser(JSON.parse(userStr)) } catch { }
-    } else {
+
+    const tryAutoLogin = () => {
       const adminToken = localStorage.getItem('knowq-token')
       if (adminToken) {
         api.post('/qa/auto-login', null, {
@@ -87,6 +84,26 @@ export default function QAFrontend() {
           }
         }).catch(() => { })
       }
+    }
+
+    if (qaTokenStored && userStr) {
+      api.get('/qa/me', { headers: { Authorization: `Bearer ${qaTokenStored}` } }).then(res => {
+        if (res.data) {
+          setQaToken(qaTokenStored)
+          setLoggedIn(true)
+          try { setQaUser(JSON.parse(userStr)) } catch { }
+        } else {
+          try { localStorage.removeItem('knowq-qa-token') } catch { }
+          try { localStorage.removeItem('knowq-qa-user') } catch { }
+          tryAutoLogin()
+        }
+      }).catch(() => {
+        try { localStorage.removeItem('knowq-qa-token') } catch { }
+        try { localStorage.removeItem('knowq-qa-user') } catch { }
+        tryAutoLogin()
+      })
+    } else {
+      tryAutoLogin()
     }
   }, [])
 

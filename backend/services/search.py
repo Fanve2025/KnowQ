@@ -39,6 +39,8 @@ class SearchClient:
         self.api_key = decrypt_api_key(config.api_key_encrypted) if config.api_key_encrypted else ""
         self.max_results = config.max_results or 5
         self.summary_length = config.summary_length or 500
+        self.endpoint = getattr(config, 'endpoint', '') or ''
+        self.cx = getattr(config, 'cx', '') or ''
 
     async def search(self, query: str) -> list:
         if self.provider == "tavily":
@@ -125,8 +127,10 @@ class SearchClient:
     async def _search_google(self, query: str) -> list:
         if not self.api_key:
             return []
+        if not self.cx:
+            return []
         url = "https://www.googleapis.com/customsearch/v1"
-        params = {"key": self.api_key, "q": query, "num": self.max_results, "cx": ""}
+        params = {"key": self.api_key, "q": query, "num": self.max_results, "cx": self.cx}
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.get(url, params=params)
             resp.raise_for_status()
@@ -141,7 +145,7 @@ class SearchClient:
         return results
 
     async def _search_searxng(self, query: str) -> list:
-        base_url = getattr(self.config, 'endpoint', '') or "http://localhost:8080"
+        base_url = self.endpoint or "http://localhost:8080"
         url = f"{base_url.rstrip('/')}/search"
         params = {"q": query, "format": "json", "categories": "general"}
         async with httpx.AsyncClient(timeout=30.0) as client:

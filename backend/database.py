@@ -34,7 +34,7 @@ async def init_db():
 
 
 async def _migrate(conn):
-    from models import SystemSettings
+    from models import SystemSettings, SearchConfig
 
     def _table_exists(sync_conn, table_name):
         inspector = inspect(sync_conn)
@@ -50,5 +50,11 @@ async def _migrate(conn):
     def _do_migrate(sync_conn):
         if not _table_exists(sync_conn, SystemSettings.__tablename__):
             SystemSettings.__table__.create(sync_conn, checkfirst=True)
+
+        if _table_exists(sync_conn, SearchConfig.__tablename__):
+            if not _column_exists(sync_conn, SearchConfig.__tablename__, 'endpoint'):
+                sync_conn.execute(text('ALTER TABLE search_configs ADD COLUMN endpoint VARCHAR(500)'))
+            if not _column_exists(sync_conn, SearchConfig.__tablename__, 'cx'):
+                sync_conn.execute(text('ALTER TABLE search_configs ADD COLUMN cx VARCHAR(200)'))
 
     await conn.run_sync(_do_migrate)

@@ -188,9 +188,9 @@ class AIEngine:
             ])
 
         system_prompt = self.system.system_prompt or (
-            "你是一个智能助手。请基于提供的知识库内容回答用户的问题。\n"
-            "如果知识库中没有相关内容，请根据你的知识回答，并标注「此回答非基于知识库」。\n"
-            "如果基于知识库内容回答，在回答末尾标注「基于知识库生成」。"
+            "你是一个智能助手。首先判断用户问题是否与提供的知识库内容相关。\n"
+            "如果相关，请严格基于知识库内容回答，在回答末尾标注「基于知识库生成」。\n"
+            "如果不相关，请回复 '__USE_SEARCH__'。"
         )
 
         messages = [{"role": "system", "content": system_prompt}]
@@ -214,11 +214,50 @@ class AIEngine:
         yield {"type": "source", "source": source, "references": references}
 
         full_answer = ""
+        use_search = False
         async for chunk in gateway.generate_stream(messages):
             full_answer += chunk
+            if "__USE_SEARCH__" in full_answer:
+                use_search = True
+                break
             yield {"type": "content", "content": chunk}
 
-        yield {"type": "done", "answer": full_answer}
+        if use_search and self.system.enable_web_search:
+            yield {"type": "content", "content": "\n\n🔍 正在联网搜索...\n\n"}
+            try:
+                search_client = await self._get_search_client()
+                search_results = await search_client.search(question)
+                search_context = "\n\n".join([
+                    f"[搜索结果{i+1}] {r['title']}\n{r['content']}\n来源：{r['url']}"
+                    for i, r in enumerate(search_results)
+                ])
+
+                search_messages = [
+                    {"role": "system", "content": "你是一个智能助手。请基于以下联网搜索结果，用自然语言回答用户的问题。在回答末尾标注「基于联网搜索结果生成」。"},
+                    {"role": "system", "content": f"搜索结果：\n{search_context}"},
+                ]
+                for h in history[-settings.ai_history_limit:]:
+                    search_messages.append(h)
+                search_messages.append({"role": "user", "content": question})
+
+                search_references = [
+                    {"title": r["title"], "url": r["url"]}
+                    for r in search_results if r.get("url")
+                ]
+                yield {"type": "source", "source": "web", "references": search_references}
+
+                search_answer = ""
+                async for chunk in gateway.generate_stream(search_messages):
+                    search_answer += chunk
+                    yield {"type": "content", "content": chunk}
+                yield {"type": "done", "answer": search_answer}
+            except Exception as e:
+                yield {"type": "content", "content": f"\n\n联网搜索失败：{str(e)}"}
+                yield {"type": "done", "answer": full_answer.replace("__USE_SEARCH__", "") + f"\n\n联网搜索失败：{str(e)}"}
+        else:
+            if use_search:
+                full_answer = full_answer.replace("__USE_SEARCH__", "")
+            yield {"type": "done", "answer": full_answer}
 
 
 STOP_WORDS = {'吗', '呢', '啊', '吧', '呀', '的', '了', '是', '在', '有', '和', '与',

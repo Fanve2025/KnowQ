@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, delete
 from database import get_db
-from models import QALog, QASession, QASystem, User
+from models import QALog, QASession, QASystem, User, to_iso
 from auth import get_current_user
 from datetime import datetime, timedelta
 from typing import Optional
@@ -93,7 +93,7 @@ async def list_qa_logs(
             "latency_ms": l.latency_ms,
             "feedback": l.feedback,
             "references": refs,
-            "created_at": l.created_at.isoformat() if l.created_at else None,
+            "created_at": to_iso(l.created_at),
         })
 
     return {"total": total, "page": page, "page_size": page_size, "items": items}

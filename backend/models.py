@@ -13,6 +13,15 @@ def now():
     return datetime.utcnow()
 
 
+def to_iso(dt):
+    if dt is None:
+        return None
+    s = dt.isoformat()
+    if s and not s.endswith(("Z", "+00:00")):
+        s += "Z"
+    return s
+
+
 class User(Base):
     __tablename__ = "users"
     id = Column(String(36), primary_key=True, default=gen_id)
@@ -90,6 +99,8 @@ class SearchConfig(Base):
     name = Column(String(200), nullable=False)
     provider = Column(String(50), nullable=False, default="tavily")
     api_key_encrypted = Column(Text, nullable=True)
+    endpoint = Column(String(500), nullable=True)
+    cx = Column(String(200), nullable=True)
     max_results = Column(Integer, default=5)
     summary_length = Column(Integer, default=500)
     is_enabled_global = Column(Boolean, default=False)
