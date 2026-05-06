@@ -147,8 +147,11 @@ KnowQ/
 
 ### 环境要求
 
-- ![Python](https://img.shields.io/badge/Python-3.10+-required-green) 
-- ![Node.js](https://img.shields.io/badge/Node.js-18+-required-green)
+| 环境 | 版本要求 |
+|------|----------|
+| ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python) | 3.10 或更高版本 |
+| ![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=nodedotjs) | 18 或更高版本 |
+| ![npm](https://img.shields.io/badge/npm-9+-CB3837?logo=npm) | 随 Node.js 安装 |
 
 ### 1️⃣ 克隆项目
 
@@ -195,7 +198,7 @@ npm run dev
 ### 4️⃣ 访问系统
 
 - 🖥️ **管理后台**：http://localhost:2428
-- 🔑 **默认账号**：admin / admin123
+- 🔑 **登录账号**：首次启动后请在系统初始化时设置管理员账号
 
 ---
 
@@ -303,7 +306,13 @@ graph LR
 
 ## 📮 联系方式
 
-如有问题或建议，欢迎提交 [Issue](https://github.com/Fanve2025/KnowQ/issues)。
+如有问题或建议，可通过以下方式联系：
+
+| 方式 | 信息 |
+|------|------|
+| 🐙 GitHub | https://github.com/Fanve2025/KnowQ |
+| 📧 Email | 352148926@qq.com |
+| 📱 Tel | 15827422695 |
 
 ---
 
