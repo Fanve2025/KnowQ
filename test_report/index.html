@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KnowQ 智答星 - 扫描修复测试文档</title>
+<style>
+:root {
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --primary-bg: #eef2ff;
+  --success: #10b981;
+  --success-bg: #ecfdf5;
+  --warning: #f59e0b;
+  --warning-bg: #fffbeb;
+  --danger: #ef4444;
+  --danger-bg: #fef2f2;
+  --info: #06b6d4;
+  --info-bg: #ecfeff;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-500: #6b7280;
+  --gray-700: #374151;
+  --gray-900: #111827;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.06);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,.1), 0 4px 6px rgba(0,0,0,.05);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--gray-50); color: var(--gray-900); line-height: 1.6; }
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+/* Header */
+.header { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%); color: #fff; padding: 48px 0 64px; position: relative; overflow: hidden; }
+.header::before { content: ''; position: absolute; top: -50%; right: -20%; width: 600px; height: 600px; border-radius: 50%; background: rgba(255,255,255,.08); }
+.header::after { content: ''; position: absolute; bottom: -30%; left: -10%; width: 400px; height: 400px; border-radius: 50%; background: rgba(255,255,255,.05); }
+.header h1 { font-size: 36px; font-weight: 700; margin-bottom: 8px; position: relative; z-index: 1; }
+.header .subtitle { font-size: 16px; opacity: .85; position: relative; z-index: 1; }
+.header .meta { display: flex; gap: 24px; margin-top: 16px; position: relative; z-index: 1; }
+.header .meta span { background: rgba(255,255,255,.15); padding: 4px 14px; border-radius: 20px; font-size: 13px; backdrop-filter: blur(4px); }
+
+/* Stats */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-top: -36px; position: relative; z-index: 2; margin-bottom: 32px; }
+.stat-card { background: #fff; border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-md); text-align: center; transition: transform .2s, box-shadow .2s; }
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.stat-card .num { font-size: 28px; font-weight: 700; }
+.stat-card .label { font-size: 13px; color: var(--gray-500); margin-top: 4px; }
+
+/* Nav */
+.nav { background: #fff; border-bottom: 1px solid var(--gray-200); position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow); }
+.nav-inner { display: flex; gap: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.nav a { padding: 14px 20px; font-size: 14px; font-weight: 500; color: var(--gray-500); text-decoration: none; white-space: nowrap; border-bottom: 2px solid transparent; transition: all .2s; }
+.nav a:hover { color: var(--primary); }
+.nav a.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* Section */
+.section { padding: 40px 0; }
+.section-title { font-size: 24px; font-weight: 700; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
+.section-title .icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; }
+
+/* Card */
+.card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; overflow: hidden; }
+.card-header { padding: 16px 24px; border-bottom: 1px solid var(--gray-100); font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; transition: background .2s; }
+.card-header:hover { background: var(--gray-50); }
+.card-header .arrow { transition: transform .2s; font-size: 12px; color: var(--gray-500); }
+.card-header.collapsed .arrow { transform: rotate(-90deg); }
+.card-body { padding: 20px 24px; }
+.card-body.hidden { display: none; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--gray-100); }
+th { background: var(--gray-50); font-weight: 600; color: var(--gray-700); font-size: 13px; text-transform: uppercase; letter-spacing: .5px; }
+tr:hover td { background: var(--gray-50); }
+td code { background: var(--primary-bg); color: var(--primary); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+
+/* Badge */
+.badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+.badge-severity-critical { background: var(--danger-bg); color: var(--danger); }
+.badge-severity-high { background: #fef3c7; color: #d97706; }
+.badge-severity-medium { background: var(--info-bg); color: var(--info); }
+.badge-severity-low { background: var(--success-bg); color: var(--success); }
+.badge-type-bug { background: var(--danger-bg); color: var(--danger); }
+.badge-type-security { background: #fce7f3; color: #db2777; }
+.badge-type-arch { background: var(--info-bg); color: var(--info); }
+.badge-type-perf { background: var(--warning-bg); color: var(--warning); }
+.badge-type-quality { background: var(--success-bg); color: var(--success); }
+.badge-status-fixed { background: var(--success-bg); color: var(--success); }
+.badge-status-pending { background: var(--warning-bg); color: var(--warning); }
+
+/* TC */
+.tc { border-left: 3px solid var(--primary); padding: 16px 20px; margin-bottom: 16px; background: var(--primary-bg); border-radius: 0 var(--radius) var(--radius) 0; }
+.tc-id { font-weight: 700; color: var(--primary); font-size: 13px; margin-bottom: 6px; }
+.tc-title { font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+.tc-row { display: flex; gap: 8px; margin-bottom: 4px; font-size: 14px; }
+.tc-label { color: var(--gray-500); min-width: 70px; flex-shrink: 0; }
+.tc-value { color: var(--gray-900); }
+
+/* Code */
+pre { background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: var(--radius); overflow-x: auto; font-size: 13px; line-height: 1.5; margin: 12px 0; }
+pre .cmd { color: #89b4fa; }
+pre .flag { color: #a6e3a1; }
+pre .url { color: #f9e2af; }
+
+/* Checklist */
+.checklist td:first-child { width: 40px; text-align: center; }
+.checklist input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+
+/* File list */
+.file-tag { display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 13px; margin: 2px 4px; }
+.file-tag-new { background: var(--success-bg); color: var(--success); }
+.file-tag-modified { background: var(--primary-bg); color: var(--primary); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header h1 { font-size: 24px; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .container { padding: 0 16px; }
+  th, td { padding: 8px 10px; font-size: 13px; }
+}
+
+/* Print */
+@media print {
+  .nav { position: static; }
+  .card { box-shadow: none; border: 1px solid var(--gray-200); }
+  .header { padding: 24px 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="container">
+    <h1>🔍 KnowQ 智答星 - 扫描修复测试文档</h1>
+    <div class="subtitle">全盘代码扫描 & Bug修复 & 功能增强 验证报告</div>
+    <div class="meta">
+      <span>📋 版本 v1.0.0</span>
+      <span>📅 2026-04-28</span>
+      <span>🖥️ 本地开发环境</span>
+      <span>✅ 19项修复</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="stats">
+    <div class="stat-card"><div class="num" style="color:var(--danger)">3</div><div class="label">严重Bug修复</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--warning)">6</div><div class="label">中等Bug修复</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--info)">5</div><div class="label">低级Bug修复</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--primary)">5</div><div class="label">架构/性能优化</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--success)">37</div><div class="label">测试用例</div></div>
+    <div class="stat-card"><div class="num" style="color:#8b5cf6">12</div><div class="label">修改文件</div></div>
+  </div>
+</div>
+
+<div class="nav">
+  <div class="container">
+    <div class="nav-inner">
+      <a href="#env" class="active">环境准备</a>
+      <a href="#func">功能测试</a>
+      <a href="#bug">Bug修复验证</a>
+      <a href="#regression">回归测试</a>
+      <a href="#checklist">测试记录</a>
+      <a href="#files">修改清单</a>
+    </div>
+  </div>
+</div>
+
+<!-- 环境准备 -->
+<div class="section" id="env">
+  <div class="container">
+    <div class="section-title">
+      <div class="icon" style="background:var(--primary)">🛠️</div>
+      一、测试环境准备
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">1.1 前置条件 <span class="arrow">▼</span></div>
+      <div class="card-body">
+        <table>
+          <tr><th>项目</th><th>要求</th></tr>
+          <tr><td>Python</td><td>3.10+ 已安装</td></tr>
+          <tr><td>Node.js</td><td>18+ 已安装</td></tr>
+          <tr><td>后端依赖</td><td><code>pip install -r requirements.txt</code></td></tr>
+          <tr><td>前端依赖</td><td><code>npm install</code></td></tr>
+          <tr><td>数据库</td><td>新增表自动创建，<strong>无需删除旧数据库</strong></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">1.2 启动服务 <span class="arrow">▼</span></div>
+      <div class="card-body">
+        <pre><span class="cmd"># 终端1：启动后端</span>
+cd backend
+python main.py
+
+<span class="cmd"># 终端2：启动前端</span>
+cd frontend
+npm run dev</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">1.3 测试账号 <span class="arrow">▼</span></div>
+      <div class="card-body">
+        <table>
+          <tr><th>角色</th><th>用户名</th><th>密码</th></tr>
+          <tr><td>管理员</td><td><code>admin</code></td><td><code>admin123</code></td></tr>
+          <tr><td>普通用户</td><td><code>user1</code></td><td><code>user123</code></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 功能测试 -->
+<div class="section" id="func">
+  <div class="container">
+    <div class="section-title">
+      <div class="icon" style="background:var(--success)">✅</div>
+      二、功能测试用例
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">2.1 系统设置 - 参数配置页面 <span class="arrow">▼</span></div>
+      <div class="card-body">
+
+        <div class="tc">
+          <div class="tc-id">TC-2.1.1</div>
+          <div class="tc-title">打开系统设置页面</div>
+          <div class="tc-row"><span class="tc-label">前置条件</span><span class="tc-value">已登录管理后台</span></div>
+          <div class="tc-row"><span class="tc-label">操作步骤</span><span class="tc-value">点击左侧菜单「系统设置」</span></div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">页面顶部显示资源概览卡片；两个Tab「参数配置」「系统信息」；4个配置分组卡片；每个参数有❓提示图标</span></div>
+        </div>
+
+        <div class="tc">
+          <div class="tc-id">TC-2.1.2</div>
+          <div class="tc-title">规则模式参数展示与编辑</div>
+          <div class="tc-row"><span class="tc-label">操作步骤</span><span class="tc-value">查看「规则模式参数」卡片 → 修改匹配阈值为0.20 → 修改BM25 k1为2.0 → 点击保存</span></div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">提示"设置保存成功"；刷新后值保持0.20和2.0</span></div>
+        </div>
+
+        <div class="tc">
+          <div class="tc-id">TC-2.1.3</div>
+          <div class="tc-title">AI模式参数展示与编辑</div>
+          <div class="tc-row"><span class="tc-label">操作步骤</span><span class="tc-value">查看「AI模式参数」→ 修改Top-K为8 → 修改历史消息限制为15 → 保存</span></div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">保存成功，刷新后值保持</span></div>
+        </div>
+
+        <div class="tc">
+          <div class="tc-id">TC-2.1.4</div>
+          <div class="tc-title">文档导入参数展示与编辑</div>
+          <div class="tc-row"><span class="tc-label">操作步骤</span><span class="tc-value">查看「文档导入参数」→ 修改分块大小为1024 → 修改分块重叠为100 → 保存</span></div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">保存成功，刷新后值保持</span></div>
+        </div>
+
+        <div class="tc">
+          <div class="tc-id">TC-2.1.5</div>
+          <div class="tc-title">系统参数 - Token过期时间</div>
+          <div class="tc-row"><span class="tc-label">操作步骤</span><span class="tc-value">修改Token过期时间为48 → 保存 → 退出重新登录</span></div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">登录成功，Token有效期为48小时</span></div>
+        </div>
+
+        <div class="tc">
+          <div class="tc-id">TC-2.1.6</div>
+          <div class="tc-title">恢复默认值</div>
+          <div class="tc-row"><span class="tc-label">操作步骤</span><span class="tc-value">点击「恢复默认」→ 点击「保存设置」</span></div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">所有参数恢复默认值并保存到数据库</span></div>
+        </div>
+
+        <div class="tc">
+          <div class="tc-id">TC-2.1.7</div>
+          <div class="tc-title">系统信息Tab</div>
+          <div class="tc-row"><span class="tc-label">操作步骤</span><span class="tc-value">点击「系统信息」Tab</span></div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">系统信息、AI引擎配置、LLM提供商、文档导入说明均正确显示，参数值与当前配置一致</span></div>
+        </div>
+
+        <div class="tc">
+          <div class="tc-id">TC-2.1.8</div>
+          <div class="tc-title">参数边界值验证</div>
+          <div class="tc-row"><span class="tc-label">操作步骤</span><span class="tc-value">匹配阈值设为-1（超最小值）→ 设为2（超最大值）→ 分块重叠设为2000（超分块大小）</span></div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">InputNumber限制范围；分块重叠超分块大小时不导致无限循环</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">2.2 系统设置 - API接口测试 <span class="arrow">▼</span></div>
+      <div class="card-body">
+        <div class="tc">
+          <div class="tc-id">TC-2.2.1</div>
+          <div class="tc-title">GET /api/admin/settings 获取设置</div>
+          <pre>curl -X GET <span class="url">http://localhost:6428/api/admin/settings</span> \
+  -H <span class="flag">"Authorization: Bearer &lt;token&gt;"</span></pre>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">HTTP 200，返回JSON包含17个配置字段，默认值正确</span></div>
+        </div>
+        <div class="tc">
+          <div class="tc-id">TC-2.2.2</div>
+          <div class="tc-title">PUT /api/admin/settings 更新设置</div>
+          <pre>curl -X PUT <span class="url">http://localhost:6428/api/admin/settings</span> \
+  -H <span class="flag">"Authorization: Bearer &lt;token&gt;"</span> \
+  -H <span class="flag">"Content-Type: application/json"</span> \
+  -d '{"rule_threshold": 0.25, "chunk_size": 1024}'</pre>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">HTTP 200，返回更新后完整对象，未传字段保持原值</span></div>
+        </div>
+        <div class="tc">
+          <div class="tc-id">TC-2.2.3</div>
+          <div class="tc-title">未认证访问设置API</div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">GET/PUT 均返回 HTTP 403</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">2.3 知识库管理 - 问答对模板下载 <span class="arrow">▼</span></div>
+      <div class="card-body">
+        <div class="tc">
+          <div class="tc-id">TC-2.3.1</div>
+          <div class="tc-title">下载问答对参考模板</div>
+          <div class="tc-row"><span class="tc-label">操作步骤</span><span class="tc-value">进入知识库详情页 → 点击「问答对模板」按钮</span></div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">浏览器下载 qa_template.docx，可用Word正常打开</span></div>
+        </div>
+        <div class="tc">
+          <div class="tc-id">TC-2.3.2</div>
+          <div class="tc-title">模板内容验证</div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">标题居中；3种格式说明；2组示例（Q:/A: 和 问：/答：）；3组空白填写区域</span></div>
+        </div>
+        <div class="tc">
+          <div class="tc-id">TC-2.3.3</div>
+          <div class="tc-title">使用模板上传问答对</div>
+          <div class="tc-row"><span class="tc-label">操作步骤</span><span class="tc-value">填写模板 → 保存 → 导入到知识库</span></div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">提示"成功导入 X 条知识条目"，类型显示"问答对"</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">2.4 动态参数生效验证 <span class="arrow">▼</span></div>
+      <div class="card-body">
+        <div class="tc">
+          <div class="tc-id">TC-2.4.1</div>
+          <div class="tc-title">修改分块参数后导入文档</div>
+          <div class="tc-row"><span class="tc-label">操作步骤</span><span class="tc-value">分块大小512导入 → 改为256再导入同一文件</span></div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">第二次每块约256字符，分块数量更多</span></div>
+        </div>
+        <div class="tc">
+          <div class="tc-id">TC-2.4.2</div>
+          <div class="tc-title">修改问答检测参数后导入</div>
+          <div class="tc-row"><span class="tc-label">操作步骤</span><span class="tc-value">最少标记数=2时上传含2个标记的文件 → 改为3再上传</span></div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">第二次被当作普通文本分块处理</span></div>
+        </div>
+        <div class="tc">
+          <div class="tc-id">TC-2.5.1</div>
+          <div class="tc-title">修改匹配阈值影响检索结果</div>
+          <div class="tc-row"><span class="tc-label">操作步骤</span><span class="tc-value">阈值0.12发送边缘问题 → 改为0.50再发同样问题</span></div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">提高阈值后，匹配结果可能变为"未找到"或"可能相关"</span></div>
+        </div>
+        <div class="tc">
+          <div class="tc-id">TC-2.5.2</div>
+          <div class="tc-title">修改次优返回数影响结果</div>
+          <div class="tc-row"><span class="tc-label">操作步骤</span><span class="tc-value">次优返回数=3 → 改为1 → 发送次优匹配问题</span></div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">第二次最多返回1条可能相关结果</span></div>
+        </div>
+        <div class="tc">
+          <div class="tc-id">TC-2.6.1</div>
+          <div class="tc-title">修改Top-K影响知识检索</div>
+          <div class="tc-row"><span class="tc-label">操作步骤</span><span class="tc-value">Top-K=5 → 改为2 → 发送问题</span></div>
+          <div class="tc-row"><span class="tc-label">预期结果</span><span class="tc-value">LLM上下文中知识条目减少，回复更聚焦</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bug修复验证 -->
+<div class="section" id="bug">
+  <div class="container">
+    <div class="section-title">
+      <div class="icon" style="background:var(--danger)">🐛</div>
+      三、Bug修复验证测试
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">严重级别 Bug <span class="arrow">▼</span></div>
+      <div class="card-body">
+        <table>
+          <tr><th>编号</th><th>严重度</th><th>Bug描述</th><th>验证步骤</th><th>预期结果</th><th>状态</th></tr>
+          <tr>
+            <td><strong>BUG-01</strong></td>
+            <td><span class="badge badge-severity-critical">严重</span></td>
+            <td><code>qa_engine.py</code> 中 <code>db</code> 应为 <code>self.db</code>，导致 NameError</td>
+            <td>创建问答系统不指定LLM配置 → 发送问题</td>
+            <td>自动选择任意LLM配置，不抛出NameError</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+          <tr>
+            <td><strong>BUG-02</strong></td>
+            <td><span class="badge badge-severity-critical">严重</span></td>
+            <td><code>(entry.question or "" + " " + entry.content)</code> 运算符优先级错误</td>
+            <td>创建条目question="如何请假", content含"OA系统" → 搜索"OA系统"</td>
+            <td>该条目被检索到（修复前content不参与匹配）</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+          <tr>
+            <td><strong>BUG-03</strong></td>
+            <td><span class="badge badge-severity-critical">严重</span></td>
+            <td><code>source = "kb" if matched else "kb"</code> 永远为"kb"</td>
+            <td>AI模式发送无关问题 → 查看日志source字段</td>
+            <td>无关问题source为"llm"，相关问题source为"kb"</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">中等级别 Bug <span class="arrow">▼</span></div>
+      <div class="card-body">
+        <table>
+          <tr><th>编号</th><th>严重度</th><th>Bug描述</th><th>验证步骤</th><th>预期结果</th><th>状态</th></tr>
+          <tr>
+            <td><strong>BUG-04</strong></td>
+            <td><span class="badge badge-severity-high">中等</span></td>
+            <td>密码通过URL查询参数传输</td>
+            <td>修改密码 → 检查Network面板请求</td>
+            <td>参数在Request Body中，URL不含密码</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+          <tr>
+            <td><strong>BUG-06</strong></td>
+            <td><span class="badge badge-severity-high">中等</span></td>
+            <td>问答解析双冒号分割逻辑缺陷</td>
+            <td>上传含 <code>Q: 什么是：KnowQ？</code> 的文件</td>
+            <td>解析出问题"什么是：KnowQ？"（完整保留）</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+          <tr>
+            <td><strong>BUG-07</strong></td>
+            <td><span class="badge badge-severity-high">中等</span></td>
+            <td>分块重叠参数导致无限循环</td>
+            <td>设置分块大小=100, 重叠=200 → 上传文件</td>
+            <td>导入正常完成，不卡死</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+          <tr>
+            <td><strong>BUG-11</strong></td>
+            <td><span class="badge badge-severity-high">中等</span></td>
+            <td>Token过期时间未使用SystemSettings</td>
+            <td>修改Token过期时间=1h → 重新登录 → 检查Token exp字段</td>
+            <td>Token过期时间为登录时间+1小时</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+          <tr>
+            <td><strong>QUAL-02</strong></td>
+            <td><span class="badge badge-severity-high">中等</span></td>
+            <td>路由顺序冲突：/qa-template 被 /{kb_id} 捕获</td>
+            <td>直接访问 GET /api/admin/kb/qa-template</td>
+            <td>返回Word模板文件（HTTP 200），不返回404</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+          <tr>
+            <td><strong>QUAL-05</strong></td>
+            <td><span class="badge badge-severity-high">中等</span></td>
+            <td>导入后entry_count未更新</td>
+            <td>导入5个问答对 → 返回知识库列表</td>
+            <td>条目数显示为5（而非0）</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">低级别 Bug & 优化 <span class="arrow">▼</span></div>
+      <div class="card-body">
+        <table>
+          <tr><th>编号</th><th>类型</th><th>描述</th><th>预期结果</th><th>状态</th></tr>
+          <tr>
+            <td><strong>BUG-10</strong></td>
+            <td><span class="badge badge-type-quality">代码质量</span></td>
+            <td><code>idx</code> 变量声明但未使用</td>
+            <td>已移除死代码</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+          <tr>
+            <td><strong>BUG-12</strong></td>
+            <td><span class="badge badge-type-quality">代码质量</span></td>
+            <td>问答标记符元组中重复项</td>
+            <td>提取为 <code>QA_QUESTION_MARKERS</code> / <code>QA_ANSWER_MARKERS</code> 常量</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+          <tr>
+            <td><strong>PERF-06</strong></td>
+            <td><span class="badge badge-type-perf">性能</span></td>
+            <td>逐知识库查询改为IN查询</td>
+            <td>1次SQL查询替代N次查询</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+          <tr>
+            <td><strong>ARCH-04</strong></td>
+            <td><span class="badge badge-type-arch">架构</span></td>
+            <td>_get_settings 重复定义</td>
+            <td>只在 <code>qa_engine.py</code> 定义一次，其他模块导入使用</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+          <tr>
+            <td><strong>STOP_WORDS</strong></td>
+            <td><span class="badge badge-type-quality">代码质量</span></td>
+            <td>停用词集合去重</td>
+            <td>集合中无重复项</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+          <tr>
+            <td><strong>SYNONYM_MAP</strong></td>
+            <td><span class="badge badge-type-quality">代码质量</span></td>
+            <td>同义词表修正自引用（'下班': ['下班']）</td>
+            <td>"下班"扩展为["下班", "下班时间"]</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">🆕 本轮新增修复 <span class="arrow">▼</span></div>
+      <div class="card-body">
+        <table>
+          <tr><th>编号</th><th>类型</th><th>描述</th><th>验证步骤</th><th>预期结果</th><th>状态</th></tr>
+          <tr>
+            <td><strong>BUG-KB01</strong></td>
+            <td><span class="badge badge-type-bug">Bug</span> <span class="badge badge-severity-critical">严重</span></td>
+            <td>知识库停用后条目仍被问答系统检索</td>
+            <td>停用一个知识库 → 向关联该知识库的问答系统发问题</td>
+            <td>停用的知识库条目不参与检索</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+          <tr>
+            <td><strong>BUG-DB01</strong></td>
+            <td><span class="badge badge-type-bug">Bug</span> <span class="badge badge-severity-critical">严重</span></td>
+            <td>新增表时删除数据库导致数据丢失</td>
+            <td>已有数据的数据库 → 重启后端</td>
+            <td>新增表自动创建，已有数据完整保留</td>
+            <td><span class="badge badge-status-fixed">已修复</span></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 回归测试 -->
+<div class="section" id="regression">
+  <div class="container">
+    <div class="section-title">
+      <div class="icon" style="background:var(--info)">🔄</div>
+      四、回归测试
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">4.1 核心业务流程回归 <span class="arrow">▼</span></div>
+      <div class="card-body">
+        <table>
+          <tr><th>流程</th><th>步骤</th><th>预期结果</th></tr>
+          <tr><td rowspan="5"><strong>AI模式完整流程</strong></td><td>1. 登录管理后台</td><td>成功进入</td></tr>
+          <tr><td>2. 创建知识库并添加问答对</td><td>创建成功</td></tr>
+          <tr><td>3. 创建AI模式问答系统，关联知识库</td><td>创建成功</td></tr>
+          <tr><td>4. 访问问答前端，发送问题</td><td>返回AI生成的回答</td></tr>
+          <tr><td>5. 查看问答日志</td><td>日志记录完整</td></tr>
+          <tr><td rowspan="4"><strong>规则模式完整流程</strong></td><td>1. 创建规则模式问答系统</td><td>创建成功</td></tr>
+          <tr><td>2. 发送精确匹配的问题</td><td>返回知识库中的答案</td></tr>
+          <tr><td>3. 发送模糊匹配的问题</td><td>返回"可能相关"的结果</td></tr>
+          <tr><td>4. 发送完全不相关的问题</td><td>返回"未找到相关内容"</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">4.2 文档导入回归 <span class="arrow">▼</span></div>
+      <div class="card-body">
+        <table>
+          <tr><th>格式</th><th>操作</th><th>预期结果</th></tr>
+          <tr><td>TXT</td><td>上传.txt文件</td><td>解析成功，条目入库</td></tr>
+          <tr><td>PDF</td><td>上传.pdf文件</td><td>解析成功，条目入库</td></tr>
+          <tr><td>DOCX</td><td>上传.docx文件</td><td>解析成功，条目入库</td></tr>
+          <tr><td>Markdown</td><td>上传.md文件</td><td>解析成功，条目入库</td></tr>
+          <tr><td>问答对格式</td><td>上传含Q:/A:标记的文件</td><td>自动识别为问答对，逐条解析</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">4.3 数据库安全迁移验证 <span class="arrow">▼</span></div>
+      <div class="card-body">
+        <table>
+          <tr><th>步骤</th><th>操作</th><th>预期结果</th></tr>
+          <tr><td>1</td><td>确保数据库已有数据（知识库、日志、配置等）</td><td>数据完整</td></tr>
+          <tr><td>2</td><td>重启后端服务</td><td>正常启动，<strong>不删除旧数据</strong></td></tr>
+          <tr><td>3</td><td>查看数据库</td><td>system_settings 表自动创建，已有数据完整保留</td></tr>
+          <tr><td>4</td><td>检查知识库列表</td><td>原有知识库和条目仍在</td></tr>
+          <tr><td>5</td><td>检查问答日志</td><td>原有日志记录仍在</td></tr>
+          <tr><td>6</td><td>检查LLM/搜索配置</td><td>原有配置仍在</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 测试记录 -->
+<div class="section" id="checklist">
+  <div class="container">
+    <div class="section-title">
+      <div class="icon" style="background:var(--warning)">📝</div>
+      五、测试结果记录表
+    </div>
+
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <table class="checklist">
+          <thead>
+            <tr><th>✓</th><th>用例编号</th><th>用例名称</th><th>结果</th><th>备注</th></tr>
+          </thead>
+          <tbody id="checklist-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 修改清单 -->
+<div class="section" id="files">
+  <div class="container">
+    <div class="section-title">
+      <div class="icon" style="background:#8b5cf6">📁</div>
+      六、修改文件清单
+    </div>
+
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <table>
+          <tr><th>文件路径</th><th>修改类型</th><th>说明</th></tr>
+          <tr><td><code>backend/models.py</code></td><td><span class="file-tag file-tag-new">新增</span></td><td>添加 SystemSettings 模型</td></tr>
+          <tr><td><code>backend/schemas.py</code></td><td><span class="file-tag file-tag-new">新增</span></td><td>添加 SettingsOut、SettingsUpdate、ChangePasswordRequest</td></tr>
+          <tr><td><code>backend/database.py</code></td><td><span class="file-tag file-tag-modified">修改</span></td><td>添加安全迁移逻辑，新增表不删除旧数据</td></tr>
+          <tr><td><code>backend/auth.py</code></td><td><span class="file-tag file-tag-modified">修改</span></td><td>create_access_token 支持 expire_hours 参数</td></tr>
+          <tr><td><code>backend/main.py</code></td><td><span class="file-tag file-tag-modified">修改</span></td><td>注册 settings 路由，种子数据安全初始化</td></tr>
+          <tr><td><code>backend/routers/settings.py</code></td><td><span class="file-tag file-tag-new">新增</span></td><td>系统设置 GET/PUT API</td></tr>
+          <tr><td><code>backend/routers/knowledge.py</code></td><td><span class="file-tag file-tag-modified">修改</span></td><td>问答对模板下载API，路由顺序修复，动态参数传递，entry_count更新</td></tr>
+          <tr><td><code>backend/routers/auth.py</code></td><td><span class="file-tag file-tag-modified">修改</span></td><td>动态Token过期时间，密码修改改用请求体</td></tr>
+          <tr><td><code>backend/routers/qa.py</code></td><td><span class="file-tag file-tag-modified">修改</span></td><td>动态Token过期时间</td></tr>
+          <tr><td><code>backend/services/qa_engine.py</code></td><td><span class="file-tag file-tag-modified">修改</span></td><td>修复3个严重Bug，动态配置，IN查询，停用KB过滤，公共函数提取</td></tr>
+          <tr><td><code>backend/services/document_parser.py</code></td><td><span class="file-tag file-tag-modified">修改</span></td><td>动态参数，解析Bug修复，防无限循环，标记常量提取</td></tr>
+          <tr><td><code>frontend/src/pages/Settings.tsx</code></td><td><span class="file-tag file-tag-modified">重写</span></td><td>纯展示 → 可编辑动态配置页面</td></tr>
+          <tr><td><code>frontend/src/pages/KnowledgeDetail.tsx</code></td><td><span class="file-tag file-tag-modified">修改</span></td><td>添加问答对模板下载按钮</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center; padding:40px 0; color:var(--gray-500); font-size:13px;">
+  KnowQ 智答星 测试文档 © 2026 凡维科技 | 生成日期：2026-04-28
+</div>
+
+<script>
+// Toggle card
+function toggleCard(header) {
+  const body = header.nextElementSibling;
+  body.classList.toggle('hidden');
+  header.classList.toggle('collapsed');
+}
+
+// Nav active
+const navLinks = document.querySelectorAll('.nav a');
+const sections = document.querySelectorAll('.section');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 100) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.remove('active');
+    if (a.getAttribute('href') === '#' + current) a.classList.add('active');
+  });
+});
+
+// Checklist
+const testCases = [
+  ['TC-2.1.1','打开系统设置页面'],['TC-2.1.2','规则模式参数展示与编辑'],['TC-2.1.3','AI模式参数展示与编辑'],
+  ['TC-2.1.4','文档导入参数展示与编辑'],['TC-2.1.5','系统参数-Token过期时间'],['TC-2.1.6','恢复默认值'],
+  ['TC-2.1.7','系统信息Tab'],['TC-2.1.8','参数边界值验证'],['TC-2.2.1','GET获取设置API'],
+  ['TC-2.2.2','PUT更新设置API'],['TC-2.2.3','未认证访问设置API'],['TC-2.3.1','下载问答对参考模板'],
+  ['TC-2.3.2','模板内容验证'],['TC-2.3.3','使用模板上传问答对'],['TC-2.4.1','修改分块参数后导入文档'],
+  ['TC-2.4.2','修改问答检测参数后导入'],['TC-2.5.1','修改匹配阈值影响检索'],['TC-2.5.2','修改次优返回数影响结果'],
+  ['TC-2.6.1','修改Top-K影响知识检索'],['TC-3.1','BUG-01: db应为self.db'],['TC-3.2','BUG-02: 运算符优先级'],
+  ['TC-3.3','BUG-03: source判断'],['TC-3.4','BUG-04: 密码传输方式'],['TC-3.5','BUG-06: 问答解析分割'],
+  ['TC-3.6','BUG-07: 分块无限循环'],['TC-3.7','BUG-11: Token过期时间'],['TC-3.8','QUAL-02: 路由顺序冲突'],
+  ['TC-3.9','QUAL-05: entry_count更新'],['TC-3.10','PERF-06: IN查询优化'],['TC-3.11','ARCH-04: 公共函数提取'],
+  ['TC-3.12','停用词/同义词修复'],['TC-KB01','BUG-KB01: 停用KB过滤'],['TC-DB01','BUG-DB01: 数据库安全迁移'],
+  ['TC-4.1.1','AI模式完整流程'],['TC-4.1.2','规则模式完整流程'],['TC-4.1.3','文档导入回归'],
+  ['TC-4.1.4','知识库CRUD回归'],['TC-4.1.5','问答系统CRUD回归'],['TC-4.2','数据库安全迁移验证'],
+];
+const tbody = document.getElementById('checklist-body');
+testCases.forEach(([id, name]) => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><input type="checkbox" id="ck-${id}"></td><td><label for="ck-${id}">${id}</label></td><td>${name}</td><td class="result-cell">—</td><td></td>`;
+  tr.querySelector('input').addEventListener('change', function() {
+    tr.querySelector('.result-cell').textContent = this.checked ? '✅ 通过' : '—';
+    tr.querySelector('.result-cell').style.color = this.checked ? 'var(--success)' : '';
+  });
+  tbody.appendChild(tr);
+});
+</script>
+</body>
+</html>
